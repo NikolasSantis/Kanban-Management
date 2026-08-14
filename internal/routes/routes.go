@@ -5,5 +5,9 @@ import (
 )
 
 func RegisterRoutes(app *fiber.App) {
+	// auth
 	RegisterAuthRoutes(app)
+
+	// users
+	RegisterUsersRoutes(app)
 }
