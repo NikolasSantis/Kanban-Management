@@ -10,4 +10,7 @@ func RegisterRoutes(app *fiber.App) {
 
 	// users
 	RegisterUsersRoutes(app)
+
+	// workspace
+	RegisterWorkspaceRoutes(app)
 }
