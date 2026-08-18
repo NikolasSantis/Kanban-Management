@@ -6,6 +6,7 @@ import (
 	"kanban-management/internal/database"
 	"kanban-management/internal/http"
 	"kanban-management/internal/models"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -159,21 +160,18 @@ func DeleteUser() fiber.Handler {
 			}, "User not found")
 		}
 
-		deleteResults, err := collection.DeleteOne(ctx, bson.M{
+		deleteResults := collection.FindOneAndUpdate(ctx, bson.M{
 			"_id": userID,
+		}, bson.M{
+			"$set": bson.M{
+				"deleted_at": time.Now(),
+			},
 		})
 
-		if err != nil {
+		if deleteResults.Err() != nil {
 			return http.Error(c, 500, fiber.Map{
-				"error": "Fail on delete operation",
-				"desc":  err.Error(),
-			}, "Fail on delete operation")
-		}
-
-		if deleteResults.DeletedCount != 1 {
-			return http.Error(c, 500, fiber.Map{
-				"error": "User not deleted",
-			}, "User not deleted")
+				"error": "Delete operation error",
+			}, "Delete operation error")
 		}
 
 		return http.Success(c, 200, fiber.Map{

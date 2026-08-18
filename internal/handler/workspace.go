@@ -201,9 +201,13 @@ func DeleteWorkspace() fiber.Handler {
 		collection := database.GetCollection("workspaces")
 		ctx := context.Background()
 
-		result := collection.FindOneAndDelete(ctx, bson.M{
+		result := collection.FindOneAndUpdate(ctx, bson.M{
 			"_id":      workspaceId,
 			"owner_id": userID,
+		}, bson.M{
+			"$set": bson.M{
+				"deleted_at": time.Now(),
+			},
 		})
 
 		if result.Err() != nil {
