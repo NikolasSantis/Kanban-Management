@@ -6,6 +6,7 @@ import (
 	"kanban-management/internal/database"
 	"kanban-management/internal/http"
 	"kanban-management/internal/models"
+	"kanban-management/internal/services"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -79,12 +80,20 @@ func CreateWorkspace() fiber.Handler {
 		collection := database.GetCollection("workspaces")
 		ctx := context.Background()
 
-		_, err = collection.InsertOne(ctx, workspace)
+		result, err := collection.InsertOne(ctx, workspace)
 
 		if err != nil {
 			return http.Error(c, 500, fiber.Map{
 				"error": "Fail to create workspace",
 			}, "Fail to create workspace")
+		}
+
+		ownerAsMember := services.AddOwnerProjectAsOneMember(userID, result.InsertedID.(bson.ObjectID))
+
+		if !ownerAsMember {
+			return http.Error(c, 500, fiber.Map{
+				"error": "Fail to save owner as one workspace member",
+			}, "Fail to save owner as one workspace member")
 		}
 
 		return http.Success(c, 200, workspace)
