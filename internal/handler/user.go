@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"kanban-management/internal/database"
+	userEvents "kanban-management/internal/events/user"
 	"kanban-management/internal/http"
 	"kanban-management/internal/models"
+	"kanban-management/internal/services"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -172,6 +174,20 @@ func DeleteUser() fiber.Handler {
 			return http.Error(c, 500, fiber.Map{
 				"error": "Delete operation error",
 			}, "Delete operation error")
+		}
+
+		err = services.Dispatcher.Dispatch(
+			userEvents.UserDeleted{
+				UserID: userID,
+				Ctx:    ctx,
+			},
+		)
+
+		if err != nil {
+			return http.Error(c, 500, fiber.Map{
+				"error": "Error to dispatch event",
+				"err":   err,
+			}, "Error to dispatch event")
 		}
 
 		return http.Success(c, 200, fiber.Map{
