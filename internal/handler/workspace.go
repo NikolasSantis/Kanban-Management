@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"kanban-management/internal/database"
+	"kanban-management/internal/events/workspace"
 	"kanban-management/internal/http"
 	"kanban-management/internal/models"
 	"kanban-management/internal/services"
@@ -214,6 +215,19 @@ func DeleteWorkspace() fiber.Handler {
 			return http.Error(c, 500, fiber.Map{
 				"error": "Delete operation error",
 			}, "Delete operation error")
+		}
+
+		err = services.Dispatcher.Dispatch(
+			workspace.WorkspaceDeletedEvent{
+				WorkspaceID: workspaceId,
+				Ctx:         ctx,
+			},
+		)
+
+		if err != nil {
+			return http.Error(c, 500, fiber.Map{
+				"error": "Fail to dispatch event",
+			}, "Fail to dispatch event")
 		}
 
 		return http.Success(c, 200, "Workspace deleted")

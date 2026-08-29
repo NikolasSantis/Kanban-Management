@@ -15,4 +15,9 @@ func RegisterEvents() {
 		"user.deleted",
 		workspace.HandleUserDeleted,
 	)
+
+	Dispatcher.Register(
+		"workspace.deleted",
+		workspace.HandleWorkspaceDeleted,
+	)
 }
