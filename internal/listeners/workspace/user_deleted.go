@@ -10,7 +10,7 @@ import (
 )
 
 func HandleUserDeleted(event events.Event) error {
-	e := event.(userEvents.UserDeleted)
+	e := event.(userEvents.UserDeletedEvent)
 
 	collection := database.GetCollection("workspaces_members")
 

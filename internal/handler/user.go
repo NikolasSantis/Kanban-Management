@@ -177,7 +177,7 @@ func DeleteUser() fiber.Handler {
 		}
 
 		err = services.Dispatcher.Dispatch(
-			userEvents.UserDeleted{
+			userEvents.UserDeletedEvent{
 				UserID: userID,
 				Ctx:    ctx,
 			},

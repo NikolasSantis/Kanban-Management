@@ -1,4 +1,4 @@
-package events
+package user
 
 import (
 	"context"
@@ -6,11 +6,11 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-type UserDeleted struct {
+type UserDeletedEvent struct {
 	UserID bson.ObjectID
 	Ctx    context.Context
 }
 
-func (e UserDeleted) Name() string {
+func (e UserDeletedEvent) Name() string {
 	return "user.deleted"
 }
