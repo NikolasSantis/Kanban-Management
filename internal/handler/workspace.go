@@ -151,6 +151,14 @@ func PatchWorkspace() fiber.Handler {
 			updates[key] = value
 		}
 
+		if len(updates) == 0 {
+			return http.Error(c, 400, fiber.Map{
+				"error": "No valid fields to update",
+			}, "No valid fields to update")
+		}
+
+		updates["updated_at"] = time.Now()
+
 		collection := database.GetCollection("workspaces")
 		ctx := context.Background()
 

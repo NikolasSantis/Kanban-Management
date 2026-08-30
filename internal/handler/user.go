@@ -92,9 +92,9 @@ func PatchUser() fiber.Handler {
 
 		updates := make(map[string]any)
 
-		for field, value := range body {
-			if allowedFields[field] {
-				updates[field] = value
+		for key, value := range body {
+			if allowedFields[key] {
+				updates[key] = value
 			}
 		}
 
@@ -103,6 +103,8 @@ func PatchUser() fiber.Handler {
 				"error": "No valid fields to update",
 			}, "No valid fields to update")
 		}
+
+		updates["updated_at"] = time.Now()
 
 		collection := database.GetCollection("users")
 		ctx := context.Background()
