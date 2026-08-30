@@ -8,6 +8,7 @@ import (
 	"kanban-management/internal/http"
 	"kanban-management/internal/models"
 	"kanban-management/internal/services"
+	"slices"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -119,6 +120,22 @@ func PatchWorkspace() fiber.Handler {
 			}, "Error on workspace ID")
 		}
 
+		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+
+		userRole, err := services.GetWorkspaceUserRole(userID, workspaceID)
+
+		if err != nil {
+			return http.Error(c, 404, fiber.Map{
+				"error": "Not found",
+			}, "Not found")
+		}
+
+		if !slices.Contains(services.UserRolesCanUpdate, userRole) {
+			return http.Error(c, 403, fiber.Map{
+				"error": "Forbidden",
+			}, "Forbidden")
+		}
+
 		var workspace models.Workspace
 		var body map[string]any
 
@@ -133,8 +150,6 @@ func PatchWorkspace() fiber.Handler {
 		for key, value := range body {
 			updates[key] = value
 		}
-
-		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
 
 		collection := database.GetCollection("workspaces")
 		ctx := context.Background()
@@ -183,7 +198,7 @@ func DeleteWorkspace() fiber.Handler {
 			}, "Missing param")
 		}
 
-		workspaceId, err := bson.ObjectIDFromHex(workspaceIDHex)
+		workspaceID, err := bson.ObjectIDFromHex(workspaceIDHex)
 
 		if err != nil {
 			return http.Error(c, 400, fiber.Map{
@@ -199,11 +214,25 @@ func DeleteWorkspace() fiber.Handler {
 			}, "Fail to user auth")
 		}
 
+		userRole, err := services.GetWorkspaceUserRole(userID, workspaceID)
+
+		if err != nil {
+			return http.Error(c, 500, fiber.Map{
+				"error": "Not found",
+			}, "Not found")
+		}
+
+		if !slices.Contains(services.UserRolesCanUpdate, userRole) {
+			return http.Error(c, 403, fiber.Map{
+				"error": "Forbidden",
+			}, "Forbidden")
+		}
+
 		collection := database.GetCollection("workspaces")
 		ctx := context.Background()
 
 		result := collection.FindOneAndUpdate(ctx, bson.M{
-			"_id":      workspaceId,
+			"_id":      workspaceID,
 			"owner_id": userID,
 		}, bson.M{
 			"$set": bson.M{
@@ -219,7 +248,7 @@ func DeleteWorkspace() fiber.Handler {
 
 		err = services.Dispatcher.Dispatch(
 			workspace.WorkspaceDeletedEvent{
-				WorkspaceID: workspaceId,
+				WorkspaceID: workspaceID,
 				Ctx:         ctx,
 			},
 		)
