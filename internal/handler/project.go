@@ -28,6 +28,16 @@ func MyProjects() fiber.Handler {
 
 		cursor, err := collection.Find(ctx, bson.M{
 			"owner_id": userID,
+			"$or": []bson.M{
+				{
+					"deleted_at": bson.M{
+						"$exists": false,
+					},
+				},
+				{
+					"deleted_at": time.Time{},
+				},
+			},
 		})
 
 		if err != nil {
