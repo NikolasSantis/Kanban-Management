@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"kanban-management/internal/database"
+	projectEvent "kanban-management/internal/events/project"
 	"kanban-management/internal/http"
 	"kanban-management/internal/models"
 	"kanban-management/internal/services"
@@ -62,7 +63,7 @@ func MyProjects() fiber.Handler {
 
 func CreateProject() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		var project models.Project
+		var project *models.Project
 
 		if err := c.BodyParser(&project); err != nil {
 			return http.Error(c, 400, fiber.Map{
@@ -99,18 +100,14 @@ func CreateProject() fiber.Handler {
 
 		now := time.Now()
 
-		project.CreatedAt, project.UpdatedAt = now, now
+		project.CreatedAt = now
+		project.UpdatedAt = now
 
 		ctx := context.Background()
+
 		collection := database.GetCollection("projects")
 
 		singleResult, err := collection.InsertOne(ctx, project)
-
-		if singleResult.Acknowledged == false {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Error to create project",
-			}, "Error to create project")
-		}
 
 		if err != nil {
 			return http.Error(c, 500, fiber.Map{
@@ -118,7 +115,27 @@ func CreateProject() fiber.Handler {
 			}, "Project not created")
 		}
 
-		return http.Success(c, 200, "Project creatd")
+		if !singleResult.Acknowledged {
+			return http.Error(c, 500, fiber.Map{
+				"error": "Error to create project",
+			}, "Error to create project")
+		}
+
+		err = services.Dispatcher.Dispatch(
+			&projectEvent.ProjectCreatedEvent{
+				ProjectID: singleResult.InsertedID.(bson.ObjectID),
+				UserID:    userID,
+				Ctx:       ctx,
+			},
+		)
+
+		if err != nil {
+			return http.Error(c, 500, fiber.Map{
+				"error": "Fail to dispatch project created event",
+			}, "Fail to dispatch project created event")
+		}
+
+		return http.Success(c, 201, project)
 	}
 }
 

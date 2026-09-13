@@ -2,6 +2,7 @@ package services
 
 import (
 	"kanban-management/internal/events"
+	project "kanban-management/internal/listeners/project_members"
 	"kanban-management/internal/listeners/workspace"
 )
 
@@ -19,5 +20,10 @@ func RegisterEvents() {
 	Dispatcher.Register(
 		"workspace.deleted",
 		workspace.HandleWorkspaceDeleted,
+	)
+
+	Dispatcher.Register(
+		"project.created",
+		project.HandleProjectCreated,
 	)
 }

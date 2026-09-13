@@ -14,4 +14,9 @@ func RegisterProjectRoutes(app *fiber.App) {
 	project.Post("/", handler.CreateProject())
 	project.Patch("/:id", handler.PatchProject())
 	project.Delete("/:id", handler.DeleteProject())
+
+	project.Get("/member/:id", handler.GetMembersOnProject())
+	project.Post("/member/:id", handler.AddMemberToProject())
+	project.Patch("/member/:id", handler.PatchProjectMember())
+	project.Delete("/member/:id", handler.DeleteProjectMember())
 }
