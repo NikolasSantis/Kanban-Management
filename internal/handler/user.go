@@ -9,10 +9,13 @@ import (
 	"kanban-management/internal/http"
 	"kanban-management/internal/models"
 	"kanban-management/internal/services"
+	"net/mail"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 func GetUser() fiber.Handler {
@@ -78,6 +81,20 @@ func PatchUser() fiber.Handler {
 			}, "Invalid Param")
 		}
 
+		currentUserID, err := middleware.CurrentUserID(c)
+
+		if err != nil {
+			return http.Error(c, 401, fiber.Map{
+				"error": "Fail to get user auth",
+			}, "Fail to get user auth")
+		}
+
+		if currentUserID != userID {
+			return http.Error(c, 403, fiber.Map{
+				"error": "Forbidden",
+			}, "Forbidden")
+		}
+
 		var body map[string]any
 
 		if err := json.Unmarshal(c.Body(), &body); err != nil {
@@ -105,6 +122,34 @@ func PatchUser() fiber.Handler {
 			}, "No valid fields to update")
 		}
 
+		if name, ok := updates["name"]; ok {
+			nameStr, isString := name.(string)
+
+			if !isString || strings.TrimSpace(nameStr) == "" {
+				return http.Error(c, 400, fiber.Map{
+					"error": "Invalid name",
+				}, "Invalid name")
+			}
+		}
+
+		if email, ok := updates["email"]; ok {
+			emailStr, isString := email.(string)
+
+			if !isString {
+				return http.Error(c, 400, fiber.Map{
+					"error": "Invalid email",
+				}, "Invalid email")
+			}
+
+			address, parseErr := mail.ParseAddress(emailStr)
+
+			if parseErr != nil || address.Address != emailStr {
+				return http.Error(c, 400, fiber.Map{
+					"error": "Invalid email",
+				}, "Invalid email")
+			}
+		}
+
 		updates["updated_at"] = time.Now()
 
 		collection := database.GetCollection("users")
@@ -119,6 +164,12 @@ func PatchUser() fiber.Handler {
 		)
 
 		if err != nil {
+			if mongo.IsDuplicateKeyError(err) {
+				return http.Error(c, 409, fiber.Map{
+					"error": "Email already in use",
+				}, "Email already in use")
+			}
+
 			return http.Error(c, 500, fiber.Map{
 				"error": "Update failed",
 			}, "Update Failed")
