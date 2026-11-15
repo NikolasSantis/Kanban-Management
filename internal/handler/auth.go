@@ -7,6 +7,7 @@ import (
 	"kanban-management/internal/database"
 	"kanban-management/internal/http"
 	"kanban-management/internal/models"
+	"kanban-management/internal/services"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -36,7 +37,10 @@ func Login() fiber.Handler {
 
 		err := collection.FindOne(
 			ctx,
-			bson.M{"email": login.Email},
+			bson.M{
+				"email": login.Email,
+				"$or":   services.NotDeleted(),
+			},
 		).Decode(&user)
 
 		if err != nil {
