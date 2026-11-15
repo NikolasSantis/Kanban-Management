@@ -90,7 +90,13 @@ func CreateProject() fiber.Handler {
 			}, "Invalid workspace ID")
 		}
 
-		if services.WorkspaceExists(project.WorkspaceID) {
+		if !services.WorkspaceExists(project.WorkspaceID) {
+			return http.Error(c, 404, fiber.Map{
+				"error": "Workspace not found",
+			}, "Workspace not found")
+		}
+
+		if _, err := services.GetWorkspaceUserRole(userID, project.WorkspaceID); err != nil {
 			return http.Error(c, 404, fiber.Map{
 				"error": "Workspace not found",
 			}, "Workspace not found")

@@ -29,6 +29,7 @@ func GetWorkspaceUserRole(userID bson.ObjectID, workspaceID bson.ObjectID) (stri
 	err := collection.FindOne(ctx, bson.M{
 		"user_id":      userID,
 		"workspace_id": workspaceID,
+		"$or":          NotDeleted(),
 	}).Decode(&workspaceMember)
 
 	return workspaceMember.Role, err
