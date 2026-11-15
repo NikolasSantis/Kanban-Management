@@ -28,29 +28,49 @@ func MyProjects() fiber.Handler {
 		ctx := context.Background()
 		collection := database.GetCollection("projects")
 
-		cursor, err := collection.Find(ctx, bson.M{
-			"owner_id": userID,
-			"$or": []bson.M{
-				{
-					"deleted_at": bson.M{
-						"$exists": false,
-					},
-				},
-				{
-					"deleted_at": time.Time{},
-				},
-			},
+		membersCursor, err := database.GetCollection("project_members").Find(ctx, bson.M{
+			"user_id": userID,
+			"$or":     services.NotDeleted(),
 		})
 
 		if err != nil {
-			return http.Error(c, 400, fiber.Map{
+			return http.Error(c, 500, fiber.Map{
+				"error": "Error to get projects",
+			}, "Error to get projects")
+		}
+
+		defer membersCursor.Close(ctx)
+
+		var memberships []models.ProjectMember
+
+		if err = membersCursor.All(ctx, &memberships); err != nil {
+			return http.Error(c, 500, fiber.Map{
+				"error": "Error to verify projects",
+			}, "Error to verify projects")
+		}
+
+		projectIDs := []bson.ObjectID{}
+
+		for _, member := range memberships {
+			if member.ProjectID != nil {
+				projectIDs = append(projectIDs, *member.ProjectID)
+			}
+		}
+
+		cursor, err := collection.Find(ctx, bson.M{
+			"_id": bson.M{"$in": projectIDs},
+			"$or": services.NotDeleted(),
+		})
+
+		if err != nil {
+			return http.Error(c, 500, fiber.Map{
 				"error": "Error to get projects",
 			}, "Error to get projects")
 		}
 
 		defer cursor.Close(ctx)
 
-		var projects []models.Project
+		projects := []models.Project{}
 
 		if err = cursor.All(ctx, &projects); err != nil {
 			return http.Error(c, 500, fiber.Map{
@@ -172,7 +192,6 @@ func PatchProject() fiber.Handler {
 			}, "Error to user auth")
 		}
 
-		var project models.Project
 		var body map[string]any
 
 		if err := json.Unmarshal(c.Body(), &body); err != nil {
@@ -196,20 +215,8 @@ func PatchProject() fiber.Handler {
 		collection := database.GetCollection("projects")
 		ctx := context.Background()
 
-		search := collection.FindOne(ctx, bson.M{
-			"_id": projectID,
-		}).Decode(&project)
-
-		if search != nil {
-			return http.Error(c, 404, fiber.Map{
-				"error": "Not found",
-			}, "Not found")
-		}
-
-		if project.Owner_id != userID {
-			return http.Error(c, 403, fiber.Map{
-				"error": "Forbidden",
-			}, "Forbidden")
+		if _, err := services.AuthorizeProject(ctx, userID, projectID, services.ActionProjectUpdate); err != nil {
+			return respondAuthError(c, err)
 		}
 
 		updates["updated_at"] = time.Now()
@@ -218,16 +225,16 @@ func PatchProject() fiber.Handler {
 			"$set": updates,
 		})
 
-		if result.ModifiedCount == 0 {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Not data updated",
-			}, "Not data updated")
-		}
-
 		if err != nil {
 			return http.Error(c, 500, fiber.Map{
 				"error": "Error to update",
 			}, "Error to update")
+		}
+
+		if result.ModifiedCount == 0 {
+			return http.Error(c, 500, fiber.Map{
+				"error": "Not data updated",
+			}, "Not data updated")
 		}
 
 		return http.Success(c, 200, "Updated")
@@ -263,23 +270,8 @@ func DeleteProject() fiber.Handler {
 		ctx := context.Background()
 		collection := database.GetCollection("projects")
 
-		var requestedProject models.Project
-
-		search := collection.FindOne(ctx, bson.M{
-			"_id":      projectID,
-			"owner_id": userID,
-		}).Decode(&requestedProject)
-
-		if search != nil {
-			return http.Error(c, 404, fiber.Map{
-				"error": "Not found",
-			}, "Not Found")
-		}
-
-		if requestedProject.Owner_id != userID {
-			return http.Error(c, 403, fiber.Map{
-				"error": "Forbidden",
-			}, "Forbidden")
+		if _, err := services.AuthorizeProject(ctx, userID, projectID, services.ActionProjectDelete); err != nil {
+			return respondAuthError(c, err)
 		}
 
 		deleteResult, err := collection.UpdateByID(ctx, projectID, bson.M{
@@ -288,16 +280,16 @@ func DeleteProject() fiber.Handler {
 			},
 		})
 
-		if deleteResult.ModifiedCount == 0 {
-			return http.Error(c, 500, fiber.Map{
-				"error": "No project modified",
-			}, "No project modified")
-		}
-
 		if err != nil {
 			return http.Error(c, 500, fiber.Map{
 				"error": "Error to delete project",
 			}, "Error to delete project")
+		}
+
+		if deleteResult.ModifiedCount == 0 {
+			return http.Error(c, 500, fiber.Map{
+				"error": "No project modified",
+			}, "No project modified")
 		}
 
 		return http.Success(c, 200, "deleted")
