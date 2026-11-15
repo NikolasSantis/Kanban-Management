@@ -25,24 +25,13 @@ var boardProtectedFields = []string{
 	"deleted_at",
 }
 
-var notDeletedFilter = []bson.M{
-	{
-		"deleted_at": bson.M{
-			"$exists": false,
-		},
-	},
-	{
-		"deleted_at": nil,
-	},
-}
-
 // findActiveBoard busca um board que não foi deletado (soft delete)
 func findActiveBoard(ctx context.Context, boardID bson.ObjectID) (*models.Board, error) {
 	var board models.Board
 
 	err := database.GetCollection("boards").FindOne(ctx, bson.M{
 		"_id": boardID,
-		"$or": notDeletedFilter,
+		"$or": services.NotDeleted(),
 	}).Decode(&board)
 
 	if err != nil {
@@ -78,10 +67,8 @@ func GetBoards() fiber.Handler {
 			}, "Invalid project id")
 		}
 
-		if _, err := services.GetProjectUserRole(userID, projectID); err != nil {
-			return http.Error(c, 404, fiber.Map{
-				"error": "Project not found",
-			}, "Project not found")
+		if _, err := services.AuthorizeProject(context.Background(), userID, projectID, services.ActionBoardView); err != nil {
+			return respondAuthError(c, err)
 		}
 
 		ctx := context.Background()
@@ -89,7 +76,7 @@ func GetBoards() fiber.Handler {
 
 		cursor, err := collection.Find(ctx, bson.M{
 			"project_id": projectID,
-			"$or":        notDeletedFilter,
+			"$or":        services.NotDeleted(),
 		})
 
 		if err != nil {
@@ -148,10 +135,8 @@ func GetBoard() fiber.Handler {
 			}, "Not found")
 		}
 
-		if _, err := services.GetProjectUserRole(userID, *board.ProjectID); err != nil {
-			return http.Error(c, 404, fiber.Map{
-				"error": "Not found",
-			}, "Not found")
+		if _, err := services.AuthorizeProject(context.Background(), userID, *board.ProjectID, services.ActionBoardView); err != nil {
+			return respondAuthError(c, err)
 		}
 
 		return http.Success(c, 200, board)
@@ -184,18 +169,8 @@ func CreateBoard() fiber.Handler {
 			}, "Fail to get user auth")
 		}
 
-		userRole, err := services.GetProjectUserRole(userID, projectID)
-
-		if err != nil {
-			return http.Error(c, 404, fiber.Map{
-				"error": "Project not found",
-			}, "Project not found")
-		}
-
-		if !slices.Contains(services.UserRolesCanUpdate, userRole) {
-			return http.Error(c, 403, fiber.Map{
-				"error": "User without permission",
-			}, "User without permission")
+		if _, err := services.AuthorizeProject(context.Background(), userID, projectID, services.ActionBoardManage); err != nil {
+			return respondAuthError(c, err)
 		}
 
 		var board models.Board
@@ -314,18 +289,8 @@ func PatchBoard() fiber.Handler {
 			}, "Not found")
 		}
 
-		userRole, err := services.GetProjectUserRole(userID, *board.ProjectID)
-
-		if err != nil {
-			return http.Error(c, 404, fiber.Map{
-				"error": "Not found",
-			}, "Not found")
-		}
-
-		if !slices.Contains(services.UserRolesCanUpdate, userRole) {
-			return http.Error(c, 403, fiber.Map{
-				"error": "User without permission",
-			}, "User without permission")
+		if _, err := services.AuthorizeProject(context.Background(), userID, *board.ProjectID, services.ActionBoardManage); err != nil {
+			return respondAuthError(c, err)
 		}
 
 		updates["updated_at"] = time.Now()
@@ -388,18 +353,8 @@ func DeleteBoard() fiber.Handler {
 			}, "Not found")
 		}
 
-		userRole, err := services.GetProjectUserRole(userID, *board.ProjectID)
-
-		if err != nil {
-			return http.Error(c, 404, fiber.Map{
-				"error": "Not found",
-			}, "Not found")
-		}
-
-		if !slices.Contains(services.UserRolesCanUpdate, userRole) {
-			return http.Error(c, 403, fiber.Map{
-				"error": "User without permission",
-			}, "User without permission")
+		if _, err := services.AuthorizeProject(context.Background(), userID, *board.ProjectID, services.ActionBoardManage); err != nil {
+			return respondAuthError(c, err)
 		}
 
 		now := time.Now()
