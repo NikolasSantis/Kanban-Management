@@ -26,3 +26,16 @@ func respondAuthError(c *fiber.Ctx, err error) error {
 		}, "Fail to check permissions")
 	}
 }
+
+// respondLastAdminError responde 409 para ErrLastAdmin e 500 para o resto.
+func respondLastAdminError(c *fiber.Ctx, err error, message string) error {
+	if errors.Is(err, services.ErrLastAdmin) {
+		return http.Error(c, 409, fiber.Map{
+			"error": message,
+		}, message)
+	}
+
+	return http.Error(c, 500, fiber.Map{
+		"error": "Fail to check admins",
+	}, "Fail to check admins")
+}

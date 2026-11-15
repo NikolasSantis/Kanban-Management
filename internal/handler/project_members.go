@@ -45,18 +45,10 @@ func GetMembersOnProject() fiber.Handler {
 			}, "Fail to get user from request auth")
 		}
 
-		userRole, err := services.GetProjectUserRole(userID, projectID)
+		_, err = services.AuthorizeProject(context.Background(), userID, projectID, services.ActionProjectView)
 
 		if err != nil {
-			return http.Error(c, 404, fiber.Map{
-				"error": "Project not found",
-			}, "Project not found")
-		}
-
-		if !slices.Contains(services.UserRolesCanUpdate, userRole) {
-			return http.Error(c, 403, fiber.Map{
-				"error": "User without permission",
-			}, "User without permission")
+			return respondAuthError(c, err)
 		}
 
 		collection := database.GetCollection("project_members")
@@ -64,16 +56,7 @@ func GetMembersOnProject() fiber.Handler {
 
 		cursor, err := collection.Find(ctx, bson.M{
 			"project_id": &projectID,
-			"$or": []bson.M{
-				{
-					"deleted_at": bson.M{
-						"$exists": false,
-					},
-				},
-				{
-					"deleted_at": nil,
-				},
-			},
+			"$or":        services.NotDeleted(),
 		})
 
 		if err != nil {
@@ -150,19 +133,16 @@ func AddMemberToProject() fiber.Handler {
 			}, "Invalid member user id")
 		}
 
-		userRole, err := services.GetProjectUserRole(userID, projectID)
+		userRole, err := services.AuthorizeProject(context.Background(), userID, projectID, services.ActionProjectManageMembers)
 
 		if err != nil {
-			return http.Error(c, 404, fiber.Map{
-				"error": "Project not found",
-				"e:":    err.Error(),
-			}, "Project not found")
+			return respondAuthError(c, err)
 		}
 
-		if !slices.Contains(services.UserRolesCanUpdate, userRole) {
+		if !services.CanChangeMemberRole(userRole, "", request.Role) {
 			return http.Error(c, 403, fiber.Map{
-				"error": "User without permission",
-			}, "User without permission")
+				"error": "Only admins can add admins",
+			}, "Only admins can add admins")
 		}
 
 		collection := database.GetCollection("project_members")
@@ -263,18 +243,10 @@ func PatchProjectMember() fiber.Handler {
 			}, "Fail to get user from auth")
 		}
 
-		userRole, err := services.GetProjectUserRole(userID, projectID)
+		userRole, err := services.AuthorizeProject(context.Background(), userID, projectID, services.ActionProjectManageMembers)
 
 		if err != nil {
-			return http.Error(c, 404, fiber.Map{
-				"error": "Project not found",
-			}, "Project not found")
-		}
-
-		if !slices.Contains(services.UserRolesCanUpdate, userRole) {
-			return http.Error(c, 403, fiber.Map{
-				"error": "User without permission",
-			}, "User without permission")
+			return respondAuthError(c, err)
 		}
 
 		var request SubjectProjectMemberRequest
@@ -308,21 +280,36 @@ func PatchProjectMember() fiber.Handler {
 		collection := database.GetCollection("project_members")
 		ctx := context.Background()
 
+		var target models.ProjectMember
+
+		err = collection.FindOne(ctx, bson.M{
+			"project_id": projectID,
+			"user_id":    subjectUserID,
+			"$or":        services.NotDeleted(),
+		}).Decode(&target)
+
+		if err != nil || target.Role == nil {
+			return http.Error(c, 404, fiber.Map{
+				"error": "Project member not found",
+			}, "Project member not found")
+		}
+
+		if !services.CanChangeMemberRole(userRole, *target.Role, request.Role) {
+			return http.Error(c, 403, fiber.Map{
+				"error": "Only admins can manage admins",
+			}, "Only admins can manage admins")
+		}
+
+		if request.Role != services.RoleAdmin {
+			if err := services.EnsureNotLastAdmin(ctx, "project_members", "project_id", projectID, *target.Role); err != nil {
+				return respondLastAdminError(c, err, "Project must have at least one admin")
+			}
+		}
+
 		result := collection.FindOneAndUpdate(
 			ctx,
 			bson.M{
-				"project_id": &projectID,
-				"user_id":    subjectUserID,
-				"$or": []bson.M{
-					{
-						"deleted_at": bson.M{
-							"$exists": false,
-						},
-					},
-					{
-						"deleted_at": nil,
-					},
-				},
+				"_id": target.ID,
 			},
 			bson.M{
 				"$set": bson.M{
@@ -333,9 +320,9 @@ func PatchProjectMember() fiber.Handler {
 		)
 
 		if result.Err() != nil {
-			return http.Error(c, 404, fiber.Map{
-				"error": "Project member not found",
-			}, "Project member not found")
+			return http.Error(c, 500, fiber.Map{
+				"error": "Error to update project member",
+			}, "Error to update project member")
 		}
 
 		return http.Success(c, 200, fiber.Map{
@@ -370,18 +357,10 @@ func DeleteProjectMember() fiber.Handler {
 			}, "Fail to get user from auth")
 		}
 
-		userRole, err := services.GetProjectUserRole(userID, projectID)
+		userRole, err := services.AuthorizeProject(context.Background(), userID, projectID, services.ActionProjectManageMembers)
 
 		if err != nil {
-			return http.Error(c, 404, fiber.Map{
-				"error": "Project not found",
-			}, "Project not found")
-		}
-
-		if !slices.Contains(services.UserRolesCanUpdate, userRole) {
-			return http.Error(c, 403, fiber.Map{
-				"error": "User without permission",
-			}, "User without permission")
+			return respondAuthError(c, err)
 		}
 
 		var request SubjectProjectMemberRequest
@@ -409,6 +388,30 @@ func DeleteProjectMember() fiber.Handler {
 		collection := database.GetCollection("project_members")
 		ctx := context.Background()
 
+		var target models.ProjectMember
+
+		err = collection.FindOne(ctx, bson.M{
+			"project_id": projectID,
+			"user_id":    subjectUserID,
+			"$or":        services.NotDeleted(),
+		}).Decode(&target)
+
+		if err != nil || target.Role == nil {
+			return http.Error(c, 404, fiber.Map{
+				"error": "Project member not found",
+			}, "Project member not found")
+		}
+
+		if !services.CanChangeMemberRole(userRole, *target.Role, "") {
+			return http.Error(c, 403, fiber.Map{
+				"error": "Only admins can manage admins",
+			}, "Only admins can manage admins")
+		}
+
+		if err := services.EnsureNotLastAdmin(ctx, "project_members", "project_id", projectID, *target.Role); err != nil {
+			return respondLastAdminError(c, err, "Project must have at least one admin")
+		}
+
 		now := time.Now()
 
 		result, err := collection.UpdateOne(
@@ -416,16 +419,7 @@ func DeleteProjectMember() fiber.Handler {
 			bson.M{
 				"project_id": &projectID,
 				"user_id":    subjectUserID,
-				"$or": []bson.M{
-					{
-						"deleted_at": bson.M{
-							"$exists": false,
-						},
-					},
-					{
-						"deleted_at": nil,
-					},
-				},
+				"$or":        services.NotDeleted(),
 			},
 			bson.M{
 				"$set": bson.M{

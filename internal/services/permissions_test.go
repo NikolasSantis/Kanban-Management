@@ -42,3 +42,26 @@ func TestCanUnknownRole(t *testing.T) {
 		t.Error("role desconhecida não deve ter permissão")
 	}
 }
+
+func TestCanChangeMemberRole(t *testing.T) {
+	cases := []struct {
+		actor, current, next string
+		want                 bool
+	}{
+		{RoleManager, RoleMember, RoleManager, true},
+		{RoleManager, RoleManager, RoleMember, true},
+		{RoleManager, RoleMember, RoleAdmin, false},
+		{RoleManager, RoleAdmin, RoleMember, false},
+		{RoleManager, RoleAdmin, "", false},
+		{RoleManager, RoleMember, "", true},
+		{RoleAdmin, RoleMember, RoleAdmin, true},
+		{RoleAdmin, RoleAdmin, RoleMember, true},
+		{RoleAdmin, RoleAdmin, "", true},
+	}
+
+	for _, tc := range cases {
+		if got := CanChangeMemberRole(tc.actor, tc.current, tc.next); got != tc.want {
+			t.Errorf("CanChangeMemberRole(%q,%q,%q) = %v, esperado %v", tc.actor, tc.current, tc.next, got, tc.want)
+		}
+	}
+}
