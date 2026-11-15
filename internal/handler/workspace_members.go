@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"kanban-management/internal/middleware"
 	"context"
 	"kanban-management/internal/database"
 	"kanban-management/internal/http"
@@ -20,7 +21,7 @@ type SubjectMemberRequest struct {
 
 func GetMyWorkspaces() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
 			return http.Error(c, 403, fiber.Map{
@@ -116,7 +117,7 @@ func GetMembersOnWorkspace() fiber.Handler {
 			}, "Invalid workspace param")
 		}
 
-		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
 			return http.Error(c, 403, fiber.Map{
@@ -185,7 +186,7 @@ func AddMemberToWorkspace() fiber.Handler {
 			}, "Missing workspace param")
 		}
 
-		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
 			return http.Error(c, 403, fiber.Map{
@@ -289,7 +290,7 @@ func PatchWorkspaceMember() fiber.Handler {
 			}, "Invalid workspace param")
 		}
 
-		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
 			return http.Error(c, 500, fiber.Map{
@@ -367,7 +368,7 @@ func DeleteWorkspaceMember() fiber.Handler {
 			}, "Invalid workspace param")
 		}
 
-		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
 			return http.Error(c, 400, fiber.Map{

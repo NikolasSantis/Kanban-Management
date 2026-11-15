@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"kanban-management/internal/middleware"
 	"context"
 	"encoding/json"
 	"kanban-management/internal/database"
@@ -61,7 +62,7 @@ func GetBoards() fiber.Handler {
 			}, "Missing Param")
 		}
 
-		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
 			return http.Error(c, 401, fiber.Map{
@@ -129,7 +130,7 @@ func GetBoard() fiber.Handler {
 			}, "Invalid board id")
 		}
 
-		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
 			return http.Error(c, 401, fiber.Map{
@@ -175,7 +176,7 @@ func CreateBoard() fiber.Handler {
 			}, "Invalid project id")
 		}
 
-		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
 			return http.Error(c, 401, fiber.Map{
@@ -271,7 +272,7 @@ func PatchBoard() fiber.Handler {
 			}, "Invalid board id")
 		}
 
-		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
 			return http.Error(c, 401, fiber.Map{
@@ -369,7 +370,7 @@ func DeleteBoard() fiber.Handler {
 			}, "Invalid board id")
 		}
 
-		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
 			return http.Error(c, 401, fiber.Map{

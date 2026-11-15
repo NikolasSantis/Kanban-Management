@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"kanban-management/internal/middleware"
 	"context"
 	"encoding/json"
 	"kanban-management/internal/database"
@@ -17,9 +18,7 @@ import (
 
 func GetWorkspaces() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		objectID := c.Locals("user_id").(string)
-
-		userID, err := bson.ObjectIDFromHex(objectID)
+		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
 			return http.Error(c, 500, fiber.Map{
@@ -64,7 +63,7 @@ func CreateWorkspace() fiber.Handler {
 			}, "Invalid body")
 		}
 
-		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
 			return http.Error(c, 400, fiber.Map{
@@ -120,7 +119,7 @@ func PatchWorkspace() fiber.Handler {
 			}, "Error on workspace ID")
 		}
 
-		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+		userID, err := middleware.CurrentUserID(c)
 
 		userRole, err := services.GetWorkspaceUserRole(userID, workspaceID)
 
@@ -214,7 +213,7 @@ func DeleteWorkspace() fiber.Handler {
 			}, "Invalid workspace ID")
 		}
 
-		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
 			return http.Error(c, 500, fiber.Map{

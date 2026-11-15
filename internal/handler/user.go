@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"kanban-management/internal/middleware"
 	"context"
 	"encoding/json"
 	"kanban-management/internal/database"
@@ -137,7 +138,15 @@ func DeleteUser() fiber.Handler {
 			}, "Missing Param")
 		}
 
-		if c.Locals("user_id").(string) != userIDHex {
+		currentUserID, err := middleware.CurrentUserID(c)
+
+		if err != nil {
+			return http.Error(c, 401, fiber.Map{
+				"error": "Fail to get user auth",
+			}, "Fail to get user auth")
+		}
+
+		if currentUserID.Hex() != userIDHex {
 			return http.Error(c, 403, fiber.Map{
 				"error": "Unathorized",
 			}, "Unauthorized")

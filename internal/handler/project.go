@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"kanban-management/internal/middleware"
 	"context"
 	"encoding/json"
 	"kanban-management/internal/database"
@@ -16,7 +17,7 @@ import (
 
 func MyProjects() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
 			return http.Error(c, 401, fiber.Map{
@@ -71,7 +72,7 @@ func CreateProject() fiber.Handler {
 			}, "Invalid body")
 		}
 
-		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
 			return http.Error(c, 400, fiber.Map{
@@ -157,7 +158,7 @@ func PatchProject() fiber.Handler {
 			}, "Invalid project")
 		}
 
-		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
 			return http.Error(c, 401, fiber.Map{
@@ -245,7 +246,7 @@ func DeleteProject() fiber.Handler {
 			}, "Invalid project id")
 		}
 
-		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
 			return http.Error(c, 401, fiber.Map{

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"kanban-management/internal/middleware"
 	"context"
 	"kanban-management/internal/database"
 	"kanban-management/internal/http"
@@ -36,7 +37,7 @@ func GetMembersOnProject() fiber.Handler {
 			}, "Invalid project param")
 		}
 
-		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
 			return http.Error(c, 403, fiber.Map{
@@ -113,7 +114,7 @@ func AddMemberToProject() fiber.Handler {
 			}, "Invalid project param")
 		}
 
-		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
 			return http.Error(c, 403, fiber.Map{
@@ -254,7 +255,7 @@ func PatchProjectMember() fiber.Handler {
 			}, "Invalid project param")
 		}
 
-		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
 			return http.Error(c, 403, fiber.Map{
@@ -361,7 +362,7 @@ func DeleteProjectMember() fiber.Handler {
 			}, "Invalid project param")
 		}
 
-		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
 			return http.Error(c, 403, fiber.Map{

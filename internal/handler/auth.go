@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"kanban-management/internal/middleware"
 	"context"
 	"kanban-management/internal/auth"
 	"kanban-management/internal/database"
@@ -121,9 +122,7 @@ func RegisterNewUser() fiber.Handler {
 
 func Me() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		userID := c.Locals("user_id").(string)
-
-		objectID, err := bson.ObjectIDFromHex(userID)
+		objectID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
 			return http.Error(c, 401, fiber.Map{
