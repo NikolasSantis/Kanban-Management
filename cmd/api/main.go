@@ -1,6 +1,7 @@
 package main
 
 import (
+	"kanban-management/config"
 	"kanban-management/internal/database"
 	"kanban-management/internal/routes"
 	"kanban-management/internal/services"
@@ -10,7 +11,12 @@ import (
 )
 
 func main() {
-	if err := database.ConnectDB(); err != nil {
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("config inválida: %v", err)
+	}
+
+	if err := database.ConnectDB(cfg); err != nil {
 		log.Fatal(err)
 	}
 
@@ -20,5 +26,7 @@ func main() {
 
 	routes.RegisterRoutes(app)
 
-	app.Listen(":8000")
+	if err := app.Listen(":" + cfg.Port); err != nil {
+		log.Fatal(err)
+	}
 }

@@ -13,24 +13,22 @@ import (
 
 var DB *mongo.Database
 
-func ConnectDB() error {
+func ConnectDB(cfg *config.Config) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	client, err := mongo.Connect(options.Client().ApplyURI(config.MongoURI()))
+	client, err := mongo.Connect(options.Client().ApplyURI(cfg.MongoURI))
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	err = client.Ping(ctx, nil)
-
-	if err != nil {
-		log.Fatal(err)
+	if err := client.Ping(ctx, nil); err != nil {
+		return err
 	}
 
 	log.Println("Conectado ao MongoDB!")
 
-	DB = client.Database(config.GetDatabase())
+	DB = client.Database(cfg.DatabaseName)
 
 	if err := CreateIndexes(); err != nil {
 		return err
