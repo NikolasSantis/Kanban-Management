@@ -43,7 +43,7 @@ func AddOwnerProjectAsOneMember(userID bson.ObjectID, workspaceID bson.ObjectID)
 	_, err := collection.InsertOne(ctx, bson.M{
 		"user_id":      userID,
 		"workspace_id": workspaceID,
-		"role":         "manager",
+		"role":         RoleAdmin,
 		"created_at":   now,
 		"updated_at":   now,
 	})
