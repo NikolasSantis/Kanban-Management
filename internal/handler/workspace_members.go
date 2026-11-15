@@ -35,16 +35,7 @@ func GetMyWorkspaces() fiber.Handler {
 
 		cursor, err := membersCollection.Find(ctx, bson.M{
 			"user_id": userID,
-			"$or": []bson.M{
-				{
-					"deleted_at": bson.M{
-						"$exists": false,
-					},
-				},
-				{
-					"deleted_at": time.Time{},
-				},
-			},
+			"$or": services.NotDeleted(),
 		})
 
 		if err != nil {
@@ -69,7 +60,7 @@ func GetMyWorkspaces() fiber.Handler {
 			workspaceIDs = append(workspaceIDs, member.WorkspaceID)
 		}
 
-		var workspaces []models.Workspace
+		workspaces := []models.Workspace{}
 
 		if len(workspaceIDs) > 0 {
 			workspacesCollection := database.GetCollection("workspaces")
@@ -78,6 +69,7 @@ func GetMyWorkspaces() fiber.Handler {
 				"_id": bson.M{
 					"$in": workspaceIDs,
 				},
+				"$or": services.NotDeleted(),
 			})
 
 			if err != nil {
@@ -125,18 +117,10 @@ func GetMembersOnWorkspace() fiber.Handler {
 			}, "Fail to user from request auth")
 		}
 
-		userRole, err := services.GetWorkspaceUserRole(userID, workspaceID)
+		_, err = services.AuthorizeWorkspace(context.Background(), userID, workspaceID, services.ActionWorkspaceView)
 
 		if err != nil {
-			return http.Error(c, 404, fiber.Map{
-				"error": "Workspace not found",
-			}, "Workspace not found")
-		}
-
-		if !slices.Contains(services.UserRolesCanUpdate, userRole) {
-			return http.Error(c, 403, fiber.Map{
-				"error": "User without permission",
-			}, "User without permission")
+			return respondAuthError(c, err)
 		}
 
 		var workspaceMembers []models.WorkspaceMember
@@ -146,16 +130,7 @@ func GetMembersOnWorkspace() fiber.Handler {
 
 		cursor, err := collection.Find(ctx, bson.M{
 			"workspace_id": workspaceID,
-			"$or": []bson.M{
-				{
-					"deleted_at": bson.M{
-						"$exists": false,
-					},
-				},
-				{
-					"deleted_at": time.Time{},
-				},
-			},
+			"$or": services.NotDeleted(),
 		})
 
 		if err != nil {
@@ -230,18 +205,37 @@ func AddMemberToWorkspace() fiber.Handler {
 			}, "Error on new member id")
 		}
 
-		userRole, err := services.GetWorkspaceUserRole(userID, workspaceID)
+		userRole, err := services.AuthorizeWorkspace(context.Background(), userID, workspaceID, services.ActionWorkspaceManageMembers)
 
 		if err != nil {
-			return http.Error(c, 404, fiber.Map{
-				"error": "Workspace not found",
-			}, "Workspace not found")
+			return respondAuthError(c, err)
 		}
 
-		if !slices.Contains(services.UserRolesCanUpdate, userRole) {
+		if !services.CanChangeMemberRole(userRole, "", subjectMemberRequest.Role) {
 			return http.Error(c, 403, fiber.Map{
-				"error": "User without permission",
-			}, "User without permission")
+				"error": "Only admins can add admins",
+			}, "Only admins can add admins")
+		}
+
+		collection := database.GetCollection("workspaces_members")
+		ctx := context.Background()
+
+		count, err := collection.CountDocuments(ctx, bson.M{
+			"workspace_id": workspaceID,
+			"user_id":      userIDToAdd,
+			"$or":          services.NotDeleted(),
+		})
+
+		if err != nil {
+			return http.Error(c, 500, fiber.Map{
+				"error": "Fail to check workspace member",
+			}, "Fail to check workspace member")
+		}
+
+		if count > 0 {
+			return http.Error(c, 409, fiber.Map{
+				"error": "User is already a workspace member",
+			}, "User is already a workspace member")
 		}
 
 		var workspaceMember models.WorkspaceMember
@@ -255,9 +249,6 @@ func AddMemberToWorkspace() fiber.Handler {
 		workspaceMember.CreatedAt = now
 		workspaceMember.UpdatedAt = now
 
-		collection := database.GetCollection("workspaces_members")
-		ctx := context.Background()
-
 		result, err := collection.InsertOne(ctx, workspaceMember)
 
 		if err != nil {
@@ -266,7 +257,9 @@ func AddMemberToWorkspace() fiber.Handler {
 			}, "Member not added")
 		}
 
-		workspaceMember.ID = result.InsertedID.(bson.ObjectID)
+		if insertedID, ok := result.InsertedID.(bson.ObjectID); ok {
+			workspaceMember.ID = insertedID
+		}
 
 		return http.Success(c, 200, workspaceMember)
 	}
@@ -298,18 +291,10 @@ func PatchWorkspaceMember() fiber.Handler {
 			}, "Fail to user auth")
 		}
 
-		userRole, err := services.GetWorkspaceUserRole(userID, workspaceID)
+		userRole, err := services.AuthorizeWorkspace(context.Background(), userID, workspaceID, services.ActionWorkspaceManageMembers)
 
 		if err != nil {
-			return http.Error(c, 404, fiber.Map{
-				"error": "Workspace not found",
-			}, "Workspace not found")
-		}
-
-		if !slices.Contains(services.UserRolesCanUpdate, userRole) {
-			return http.Error(c, 403, fiber.Map{
-				"error": "User without permission",
-			}, "User wihtout permission")
+			return respondAuthError(c, err)
 		}
 
 		var subjectMemberRequest SubjectMemberRequest
@@ -321,28 +306,64 @@ func PatchWorkspaceMember() fiber.Handler {
 		}
 
 		if subjectMemberRequest.UserId == "" || subjectMemberRequest.Role == "" {
-			return http.Error(c, 403, fiber.Map{
+			return http.Error(c, 400, fiber.Map{
 				"error": "Invalid user id or role on body",
 			}, "Invalid user id or role on body")
+		}
+
+		if !slices.Contains(services.UserRoles, subjectMemberRequest.Role) {
+			return http.Error(c, 400, fiber.Map{
+				"error": "Invalid role on body",
+			}, "Invalid role on body")
+		}
+
+		subjectUserID, err := bson.ObjectIDFromHex(subjectMemberRequest.UserId)
+
+		if err != nil {
+			return http.Error(c, 400, fiber.Map{
+				"error": "Invalid member user id",
+			}, "Invalid member user id")
 		}
 
 		collection := database.GetCollection("workspaces_members")
 		ctx := context.Background()
 
-		result := collection.FindOneAndReplace(ctx, bson.M{
+		var target models.WorkspaceMember
+
+		err = collection.FindOne(ctx, bson.M{
 			"workspace_id": workspaceID,
-			"user_id":      subjectMemberRequest.UserId,
-		}, bson.M{
+			"user_id":      subjectUserID,
+			"$or":          services.NotDeleted(),
+		}).Decode(&target)
+
+		if err != nil {
+			return http.Error(c, 404, fiber.Map{
+				"error": "Workspace member not found",
+			}, "Workspace member not found")
+		}
+
+		if !services.CanChangeMemberRole(userRole, target.Role, subjectMemberRequest.Role) {
+			return http.Error(c, 403, fiber.Map{
+				"error": "Only admins can manage admins",
+			}, "Only admins can manage admins")
+		}
+
+		if subjectMemberRequest.Role != services.RoleAdmin {
+			if err := services.EnsureNotLastAdmin(ctx, "workspaces_members", "workspace_id", workspaceID, target.Role); err != nil {
+				return respondLastAdminError(c, err, "Workspace must have at least one admin")
+			}
+		}
+
+		_, err = collection.UpdateByID(ctx, target.ID, bson.M{
 			"$set": bson.M{
 				"role":       subjectMemberRequest.Role,
 				"updated_at": time.Now(),
 			},
 		})
 
-		if result.Err() != nil {
+		if err != nil {
 			return http.Error(c, 500, fiber.Map{
 				"error": "Member not updated",
-				"msg":   result.Err(),
 			}, "Member not updated")
 		}
 
@@ -376,18 +397,10 @@ func DeleteWorkspaceMember() fiber.Handler {
 			}, "Fail to user auth")
 		}
 
-		userRole, err := services.GetWorkspaceUserRole(userID, workspaceID)
+		userRole, err := services.AuthorizeWorkspace(context.Background(), userID, workspaceID, services.ActionWorkspaceManageMembers)
 
 		if err != nil {
-			return http.Error(c, 404, fiber.Map{
-				"error": "Workspace not found",
-			}, "Workspace not found")
-		}
-
-		if !slices.Contains(services.UserRolesCanUpdate, userRole) {
-			return http.Error(c, 403, fiber.Map{
-				"error": "User without permission",
-			}, "User wihtout permission")
+			return respondAuthError(c, err)
 		}
 
 		var subjectMemberRequest SubjectMemberRequest
@@ -415,16 +428,40 @@ func DeleteWorkspaceMember() fiber.Handler {
 			}, "Error to convert subject member ")
 		}
 
-		result := collection.FindOneAndUpdate(ctx, bson.M{
+		var target models.WorkspaceMember
+
+		err = collection.FindOne(ctx, bson.M{
 			"workspace_id": workspaceID,
 			"user_id":      subjectUserId,
-		}, bson.M{
+			"$or":          services.NotDeleted(),
+		}).Decode(&target)
+
+		if err != nil {
+			return http.Error(c, 404, fiber.Map{
+				"error": "Workspace member not found",
+			}, "Workspace member not found")
+		}
+
+		if !services.CanChangeMemberRole(userRole, target.Role, "") {
+			return http.Error(c, 403, fiber.Map{
+				"error": "Only admins can manage admins",
+			}, "Only admins can manage admins")
+		}
+
+		if err := services.EnsureNotLastAdmin(ctx, "workspaces_members", "workspace_id", workspaceID, target.Role); err != nil {
+			return respondLastAdminError(c, err, "Workspace must have at least one admin")
+		}
+
+		now := time.Now()
+
+		_, err = collection.UpdateByID(ctx, target.ID, bson.M{
 			"$set": bson.M{
-				"deleted_at": time.Now(),
+				"deleted_at": now,
+				"updated_at": now,
 			},
 		})
 
-		if result.Err() != nil {
+		if err != nil {
 			return http.Error(c, 500, fiber.Map{
 				"error": "Member not deleted",
 			}, "Member not deleted")

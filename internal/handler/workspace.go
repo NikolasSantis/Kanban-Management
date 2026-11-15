@@ -9,7 +9,6 @@ import (
 	"kanban-management/internal/http"
 	"kanban-management/internal/models"
 	"kanban-management/internal/services"
-	"slices"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -31,6 +30,7 @@ func GetWorkspaces() fiber.Handler {
 
 		cursor, err := collection.Find(ctx, bson.M{
 			"owner_id": userID,
+			"$or":      services.NotDeleted(),
 		})
 
 		if err != nil {
@@ -41,7 +41,7 @@ func GetWorkspaces() fiber.Handler {
 
 		defer cursor.Close(ctx)
 
-		var workspaces []models.Workspace
+		workspaces := []models.Workspace{}
 
 		if err = cursor.All(ctx, &workspaces); err != nil {
 			return http.Error(c, 500, fiber.Map{
@@ -121,21 +121,18 @@ func PatchWorkspace() fiber.Handler {
 
 		userID, err := middleware.CurrentUserID(c)
 
-		userRole, err := services.GetWorkspaceUserRole(userID, workspaceID)
-
 		if err != nil {
-			return http.Error(c, 404, fiber.Map{
-				"error": "Not found",
-			}, "Not found")
+			return http.Error(c, 401, fiber.Map{
+				"error": "Fail to user auth",
+			}, "Fail to user auth")
 		}
 
-		if !slices.Contains(services.UserRolesCanUpdate, userRole) {
-			return http.Error(c, 403, fiber.Map{
-				"error": "Forbidden",
-			}, "Forbidden")
+		ctx := context.Background()
+
+		if _, err := services.AuthorizeWorkspace(ctx, userID, workspaceID, services.ActionWorkspaceUpdate); err != nil {
+			return respondAuthError(c, err)
 		}
 
-		var workspace models.Workspace
 		var body map[string]any
 
 		if err := json.Unmarshal(c.Body(), &body); err != nil {
@@ -159,36 +156,21 @@ func PatchWorkspace() fiber.Handler {
 		updates["updated_at"] = time.Now()
 
 		collection := database.GetCollection("workspaces")
-		ctx := context.Background()
-
-		err = collection.FindOne(ctx, bson.M{"_id": workspaceID}).Decode(&workspace)
-
-		if err != nil {
-			return http.Error(c, 404, fiber.Map{
-				"error": "Workspace not found",
-			}, "Workspace not found")
-		}
-
-		if workspace.OwnderID != userID {
-			return http.Error(c, 403, fiber.Map{
-				"error": "User can not update the workspace",
-			}, "User can not update workspace")
-		}
 
 		updateResult, err := collection.UpdateByID(ctx, workspaceID, bson.M{
 			"$set": updates,
 		})
 
-		if updateResult.ModifiedCount != 1 {
-			return http.Error(c, 500, fiber.Map{
-				"error": "No modified register",
-			}, "No modified register")
-		}
-
 		if err != nil {
 			return http.Error(c, 500, fiber.Map{
 				"error": "Error on update register",
 			}, "Error to update register")
+		}
+
+		if updateResult.ModifiedCount != 1 {
+			return http.Error(c, 500, fiber.Map{
+				"error": "No modified register",
+			}, "No modified register")
 		}
 
 		return http.Success(c, 200, fiber.Map{"message": "Updated"})
@@ -221,26 +203,17 @@ func DeleteWorkspace() fiber.Handler {
 			}, "Fail to user auth")
 		}
 
-		userRole, err := services.GetWorkspaceUserRole(userID, workspaceID)
+		ctx := context.Background()
 
-		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Not found",
-			}, "Not found")
-		}
-
-		if !slices.Contains(services.UserRolesCanUpdate, userRole) {
-			return http.Error(c, 403, fiber.Map{
-				"error": "Forbidden",
-			}, "Forbidden")
+		if _, err := services.AuthorizeWorkspace(ctx, userID, workspaceID, services.ActionWorkspaceDelete); err != nil {
+			return respondAuthError(c, err)
 		}
 
 		collection := database.GetCollection("workspaces")
-		ctx := context.Background()
 
 		result := collection.FindOneAndUpdate(ctx, bson.M{
-			"_id":      workspaceID,
-			"owner_id": userID,
+			"_id": workspaceID,
+			"$or": services.NotDeleted(),
 		}, bson.M{
 			"$set": bson.M{
 				"deleted_at": time.Now(),
