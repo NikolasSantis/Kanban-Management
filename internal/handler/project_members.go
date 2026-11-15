@@ -228,7 +228,9 @@ func AddMemberToProject() fiber.Handler {
 			}, "Member not added")
 		}
 
-		member.ID = result.InsertedID.(*bson.ObjectID)
+		if insertedID, ok := result.InsertedID.(bson.ObjectID); ok {
+			member.ID = &insertedID
+		}
 
 		return http.Success(c, 201, member)
 	}
