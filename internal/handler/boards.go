@@ -1,0 +1,429 @@
+package handler
+
+import (
+	"context"
+	"encoding/json"
+	"kanban-management/internal/database"
+	"kanban-management/internal/http"
+	"kanban-management/internal/models"
+	"kanban-management/internal/services"
+	"slices"
+	"time"
+
+	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/v2/bson"
+)
+
+// Campos que não podem ser alterados via PATCH
+var boardProtectedFields = []string{
+	"_id",
+	"id",
+	"project_id",
+	"created_at",
+	"updated_at",
+	"deleted_at",
+}
+
+var notDeletedFilter = []bson.M{
+	{
+		"deleted_at": bson.M{
+			"$exists": false,
+		},
+	},
+	{
+		"deleted_at": nil,
+	},
+}
+
+// findActiveBoard busca um board que não foi deletado (soft delete)
+func findActiveBoard(ctx context.Context, boardID bson.ObjectID) (*models.Board, error) {
+	var board models.Board
+
+	err := database.GetCollection("boards").FindOne(ctx, bson.M{
+		"_id": boardID,
+		"$or": notDeletedFilter,
+	}).Decode(&board)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &board, nil
+}
+
+func GetBoards() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		projectIDHex := c.Params("id")
+
+		if projectIDHex == "" {
+			return http.Error(c, 400, fiber.Map{
+				"error": "Missing Param",
+			}, "Missing Param")
+		}
+
+		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+
+		if err != nil {
+			return http.Error(c, 401, fiber.Map{
+				"error": "Fail to get user auth",
+			}, "Fail to get user auth")
+		}
+
+		projectID, err := bson.ObjectIDFromHex(projectIDHex)
+
+		if err != nil {
+			return http.Error(c, 400, fiber.Map{
+				"error": "Invalid project id",
+			}, "Invalid project id")
+		}
+
+		if _, err := services.GetProjectUserRole(userID, projectID); err != nil {
+			return http.Error(c, 404, fiber.Map{
+				"error": "Project not found",
+			}, "Project not found")
+		}
+
+		ctx := context.Background()
+		collection := database.GetCollection("boards")
+
+		cursor, err := collection.Find(ctx, bson.M{
+			"project_id": projectID,
+			"$or":        notDeletedFilter,
+		})
+
+		if err != nil {
+			return http.Error(c, 500, fiber.Map{
+				"error": "Fail to get project boards",
+			}, "Fail to get project boards")
+		}
+
+		defer cursor.Close(ctx)
+
+		boards := []models.Board{}
+
+		if err := cursor.All(ctx, &boards); err != nil {
+			return http.Error(c, 500, fiber.Map{
+				"error": "Fail to decode project boards",
+			}, "Fail to decode project boards")
+		}
+
+		return http.Success(c, 200, boards)
+	}
+}
+
+func GetBoard() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		boardIDHex := c.Params("board_id")
+
+		if boardIDHex == "" {
+			return http.Error(c, 400, fiber.Map{
+				"error": "Missing board id",
+			}, "Missing board id")
+		}
+
+		boardID, err := bson.ObjectIDFromHex(boardIDHex)
+
+		if err != nil {
+			return http.Error(c, 400, fiber.Map{
+				"error": "Invalid board id",
+			}, "Invalid board id")
+		}
+
+		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+
+		if err != nil {
+			return http.Error(c, 401, fiber.Map{
+				"error": "Fail to get user auth",
+			}, "Fail to get user auth")
+		}
+
+		ctx := context.Background()
+
+		board, err := findActiveBoard(ctx, boardID)
+
+		if err != nil || board.ProjectID == nil {
+			return http.Error(c, 404, fiber.Map{
+				"error": "Not found",
+			}, "Not found")
+		}
+
+		if _, err := services.GetProjectUserRole(userID, *board.ProjectID); err != nil {
+			return http.Error(c, 404, fiber.Map{
+				"error": "Not found",
+			}, "Not found")
+		}
+
+		return http.Success(c, 200, board)
+	}
+}
+
+func CreateBoard() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		projectIDHex := c.Params("id")
+
+		if projectIDHex == "" {
+			return http.Error(c, 400, fiber.Map{
+				"error": "Missing Param",
+			}, "Missing Param")
+		}
+
+		projectID, err := bson.ObjectIDFromHex(projectIDHex)
+
+		if err != nil {
+			return http.Error(c, 400, fiber.Map{
+				"error": "Invalid project id",
+			}, "Invalid project id")
+		}
+
+		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+
+		if err != nil {
+			return http.Error(c, 401, fiber.Map{
+				"error": "Fail to get user auth",
+			}, "Fail to get user auth")
+		}
+
+		userRole, err := services.GetProjectUserRole(userID, projectID)
+
+		if err != nil {
+			return http.Error(c, 404, fiber.Map{
+				"error": "Project not found",
+			}, "Project not found")
+		}
+
+		if !slices.Contains(services.UserRolesCanUpdate, userRole) {
+			return http.Error(c, 403, fiber.Map{
+				"error": "User without permission",
+			}, "User without permission")
+		}
+
+		var board models.Board
+
+		if err := c.BodyParser(&board); err != nil {
+			return http.Error(c, 400, fiber.Map{
+				"error": "Invalid body",
+			}, "Invalid body")
+		}
+
+		if board.Name == nil || *board.Name == "" {
+			return http.Error(c, 400, fiber.Map{
+				"error": "Board name is required",
+			}, "Board name is required")
+		}
+
+		now := time.Now()
+
+		board.ID = nil
+		board.ProjectID = &projectID
+		board.DeletedAt = nil
+		board.CreatedAt, board.UpdatedAt = now, now
+
+		for i := range board.Columns {
+			board.Columns[i].CreatedAt = now
+			board.Columns[i].UpdatedAt = now
+		}
+
+		for i := range board.Members {
+			board.Members[i].CreatedAt = now
+			board.Members[i].UpdatedAt = now
+		}
+
+		ctx := context.Background()
+		collection := database.GetCollection("boards")
+
+		result, err := collection.InsertOne(ctx, board)
+
+		if err != nil {
+			return http.Error(c, 500, fiber.Map{
+				"error": "Board not created",
+			}, "Board not created")
+		}
+
+		if !result.Acknowledged {
+			return http.Error(c, 500, fiber.Map{
+				"error": "Error to create board",
+			}, "Error to create board")
+		}
+
+		if insertedID, ok := result.InsertedID.(bson.ObjectID); ok {
+			board.ID = &insertedID
+		}
+
+		return http.Success(c, 201, board)
+	}
+}
+
+func PatchBoard() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		boardIDHex := c.Params("board_id")
+
+		if boardIDHex == "" {
+			return http.Error(c, 400, fiber.Map{
+				"error": "Missing board id",
+			}, "Missing board id")
+		}
+
+		boardID, err := bson.ObjectIDFromHex(boardIDHex)
+
+		if err != nil {
+			return http.Error(c, 400, fiber.Map{
+				"error": "Invalid board id",
+			}, "Invalid board id")
+		}
+
+		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+
+		if err != nil {
+			return http.Error(c, 401, fiber.Map{
+				"error": "Fail to get user auth",
+			}, "Fail to get user auth")
+		}
+
+		var body map[string]any
+
+		if err := json.Unmarshal(c.Body(), &body); err != nil {
+			return http.Error(c, 400, fiber.Map{
+				"error": "Invalid JSON",
+			}, "Invalid JSON")
+		}
+
+		updates := make(map[string]any)
+
+		for key, value := range body {
+			if slices.Contains(boardProtectedFields, key) {
+				continue
+			}
+
+			updates[key] = value
+		}
+
+		if len(updates) == 0 {
+			return http.Error(c, 400, fiber.Map{
+				"error": "No valid field to update",
+			}, "No valid field to update")
+		}
+
+		ctx := context.Background()
+
+		board, err := findActiveBoard(ctx, boardID)
+
+		if err != nil || board.ProjectID == nil {
+			return http.Error(c, 404, fiber.Map{
+				"error": "Not found",
+			}, "Not found")
+		}
+
+		userRole, err := services.GetProjectUserRole(userID, *board.ProjectID)
+
+		if err != nil {
+			return http.Error(c, 404, fiber.Map{
+				"error": "Not found",
+			}, "Not found")
+		}
+
+		if !slices.Contains(services.UserRolesCanUpdate, userRole) {
+			return http.Error(c, 403, fiber.Map{
+				"error": "User without permission",
+			}, "User without permission")
+		}
+
+		updates["updated_at"] = time.Now()
+
+		collection := database.GetCollection("boards")
+
+		result, err := collection.UpdateByID(ctx, boardID, bson.M{
+			"$set": updates,
+		})
+
+		if err != nil {
+			return http.Error(c, 500, fiber.Map{
+				"error": "Error to update",
+			}, "Error to update")
+		}
+
+		if result.ModifiedCount == 0 {
+			return http.Error(c, 500, fiber.Map{
+				"error": "Not data updated",
+			}, "Not data updated")
+		}
+
+		return http.Success(c, 200, "Updated")
+	}
+}
+
+func DeleteBoard() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		boardIDHex := c.Params("board_id")
+
+		if boardIDHex == "" {
+			return http.Error(c, 400, fiber.Map{
+				"error": "Missing board id",
+			}, "Missing board id")
+		}
+
+		boardID, err := bson.ObjectIDFromHex(boardIDHex)
+
+		if err != nil {
+			return http.Error(c, 400, fiber.Map{
+				"error": "Invalid board id",
+			}, "Invalid board id")
+		}
+
+		userID, err := bson.ObjectIDFromHex(c.Locals("user_id").(string))
+
+		if err != nil {
+			return http.Error(c, 401, fiber.Map{
+				"error": "Fail to get user auth",
+			}, "Fail to get user auth")
+		}
+
+		ctx := context.Background()
+
+		board, err := findActiveBoard(ctx, boardID)
+
+		if err != nil || board.ProjectID == nil {
+			return http.Error(c, 404, fiber.Map{
+				"error": "Not found",
+			}, "Not found")
+		}
+
+		userRole, err := services.GetProjectUserRole(userID, *board.ProjectID)
+
+		if err != nil {
+			return http.Error(c, 404, fiber.Map{
+				"error": "Not found",
+			}, "Not found")
+		}
+
+		if !slices.Contains(services.UserRolesCanUpdate, userRole) {
+			return http.Error(c, 403, fiber.Map{
+				"error": "User without permission",
+			}, "User without permission")
+		}
+
+		now := time.Now()
+
+		collection := database.GetCollection("boards")
+
+		result, err := collection.UpdateByID(ctx, boardID, bson.M{
+			"$set": bson.M{
+				"deleted_at": now,
+				"updated_at": now,
+			},
+		})
+
+		if err != nil {
+			return http.Error(c, 500, fiber.Map{
+				"error": "Error to delete board",
+			}, "Error to delete board")
+		}
+
+		if result.ModifiedCount == 0 {
+			return http.Error(c, 500, fiber.Map{
+				"error": "No board modified",
+			}, "No board modified")
+		}
+
+		return http.Success(c, 200, "deleted")
+	}
+}
