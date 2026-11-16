@@ -18,4 +18,9 @@ func RegisterBoardRoutes(app *fiber.App) {
 	board.Get("/:board_id", handler.GetBoard())
 	board.Patch("/:board_id", handler.PatchBoard())
 	board.Delete("/:board_id", handler.DeleteBoard())
+
+	// Colunas de um board
+	board.Post("/:board_id/columns", handler.AddColumn())
+	board.Patch("/:board_id/columns/:column_id", handler.PatchColumn())
+	board.Delete("/:board_id/columns/:column_id", handler.DeleteColumn())
 }
