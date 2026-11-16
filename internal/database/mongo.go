@@ -54,6 +54,23 @@ func CreateIndexes() error {
 		return err
 	}
 
+	// Nome de label único por board (sem diferenciar maiúsculas) enquanto ativa.
+	// O Mongo não aceita {$exists: false} em partialFilterExpression, por isso o
+	// índice usa o campo "active" (true até o soft delete).
+	_, err = GetCollection("labels").Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "board_id", Value: 1},
+			{Key: "name_normalized", Value: 1},
+		},
+		Options: options.Index().
+			SetUnique(true).
+			SetPartialFilterExpression(bson.M{"active": true}),
+	})
+
+	if err != nil {
+		return err
+	}
+
 	_, err = GetCollection("cards").Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
 			Keys: bson.D{
@@ -77,6 +94,12 @@ func CreateIndexes() error {
 			Keys: bson.D{
 				{Key: "project_id", Value: 1},
 				{Key: "due_date", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "board_id", Value: 1},
+				{Key: "label_ids", Value: 1},
 			},
 		},
 	})

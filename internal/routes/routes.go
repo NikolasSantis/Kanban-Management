@@ -11,4 +11,5 @@ func RegisterRoutes(app *fiber.App) {
 	RegisterProjectRoutes(app)
 	RegisterBoardRoutes(app)
 	RegisterCardRoutes(app)
+	RegisterLabelRoutes(app)
 }
