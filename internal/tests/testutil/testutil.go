@@ -77,6 +77,22 @@ func AssertTestDatabase(mainDB, testDB string) error {
 	return nil
 }
 
+// perPackageDatabase dá a cada pacote de teste o seu próprio banco
+// (ex.: kanban_test -> kanban_services_test), porque "go test ./..." roda os
+// pacotes em paralelo e o Cleanup de um não pode apagar os dados de outro.
+// O nome continua terminando em _test.
+func perPackageDatabase(testDB string) string {
+	dir, err := os.Getwd()
+	if err != nil {
+		return testDB
+	}
+
+	tag := filepath.Base(dir)
+	base := strings.TrimSuffix(testDB, "_test")
+
+	return base + "_" + tag + "_test"
+}
+
 // loadDotEnv procura o .env subindo as pastas a partir do diretório atual
 // (os testes rodam dentro de internal/tests/...). Não sobrescreve variáveis
 // já definidas no ambiente.
@@ -115,7 +131,7 @@ func initialize() {
 	}
 
 	mainDBName = cfg.DatabaseName
-	testDBName = cfg.TestDatabaseName
+	testDBName = perPackageDatabase(cfg.TestDatabaseName)
 
 	if err := AssertTestDatabase(mainDBName, testDBName); err != nil {
 		initErr = err
