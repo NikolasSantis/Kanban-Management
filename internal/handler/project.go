@@ -16,6 +16,13 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
+// Campos que o PATCH de projeto aceita (allowlist).
+var projectPatchableFields = map[string]bool{
+	"name":        true,
+	"description": true,
+	"status":      true,
+}
+
 func MyProjects() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		userID, err := middleware.CurrentUserID(c)
@@ -200,7 +207,9 @@ func PatchProject() fiber.Handler {
 		updates := make(map[string]any)
 
 		for key, value := range body {
-			updates[key] = value
+			if projectPatchableFields[key] {
+				updates[key] = value
+			}
 		}
 
 		if len(updates) == 0 {
