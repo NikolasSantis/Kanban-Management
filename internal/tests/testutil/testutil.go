@@ -13,6 +13,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
+	nethttp "net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -117,6 +119,8 @@ func loadDotEnv() {
 
 func initialize() {
 	_ = os.Setenv("APP_ENV", "test")
+	// Os testes nunca gravam anexos em disco: o storage é em memória.
+	_ = os.Setenv("STORAGE_DRIVER", "memory")
 	loadDotEnv()
 
 	if os.Getenv("MONGODB_URI") == "" {
@@ -381,4 +385,63 @@ func CreateCard(t *testing.T, app *fiber.App, token, boardID, columnID, title st
 	require.NotEmpty(t, id)
 
 	return id
+}
+
+// Upload envia um arquivo em multipart/form-data (campo "file") e devolve status e envelope.
+func Upload(t *testing.T, app *fiber.App, path, token, fileName string, content []byte) (int, Envelope) {
+	t.Helper()
+
+	return UploadField(t, app, path, token, "file", fileName, content)
+}
+
+// UploadField é Upload com o nome do campo configurável.
+func UploadField(t *testing.T, app *fiber.App, path, token, field, fileName string, content []byte) (int, Envelope) {
+	t.Helper()
+
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+
+	part, err := writer.CreateFormFile(field, fileName)
+	require.NoError(t, err)
+	_, err = part.Write(content)
+	require.NoError(t, err)
+	require.NoError(t, writer.Close())
+
+	req := httptest.NewRequest("POST", path, &body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	resp, err := app.Test(req, -1)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	raw, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	var env Envelope
+	require.NoError(t, json.Unmarshal(raw, &env), "resposta não é o envelope padrão: %s", raw)
+
+	return resp.StatusCode, env
+}
+
+// DoRaw faz uma request sem corpo e devolve status, headers e os bytes da resposta
+// (para downloads, que não vêm no envelope).
+func DoRaw(t *testing.T, app *fiber.App, method, path, token string) (int, nethttp.Header, []byte) {
+	t.Helper()
+
+	req := httptest.NewRequest(method, path, nil)
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	resp, err := app.Test(req, -1)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	raw, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	return resp.StatusCode, resp.Header, raw
 }

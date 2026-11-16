@@ -13,6 +13,7 @@ import (
 	"kanban-management/internal/middleware"
 	"kanban-management/internal/routes"
 	"kanban-management/internal/services"
+	"kanban-management/internal/storage"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/recover"
@@ -26,6 +27,8 @@ func New(cfg *config.Config) *fiber.App {
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errorHandler,
+		// Um pouco acima do limite de anexo, para o handler responder 413 com mensagem.
+		BodyLimit: (cfg.AttachmentMaxSizeMB + 1) * 1024 * 1024,
 		// O banner do Fiber não é JSON; com LOG_FORMAT=json toda linha precisa ser.
 		DisableStartupMessage: cfg.LogFormat == "json",
 	})
@@ -41,7 +44,7 @@ func New(cfg *config.Config) *fiber.App {
 		},
 	}))
 
-	routes.RegisterRoutes(app)
+	routes.RegisterRoutes(app, storage.New(cfg))
 
 	return app
 }

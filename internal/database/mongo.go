@@ -65,6 +65,17 @@ func CreateIndexes() error {
 		return err
 	}
 
+	_, err = GetCollection("attachments").Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "card_id", Value: 1},
+			{Key: "created_at", Value: -1},
+		},
+	})
+
+	if err != nil {
+		return err
+	}
+
 	// Nome de label único por board (sem diferenciar maiúsculas) enquanto ativa.
 	// O Mongo não aceita {$exists: false} em partialFilterExpression, por isso o
 	// índice usa o campo "active" (true até o soft delete).

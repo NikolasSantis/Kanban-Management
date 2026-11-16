@@ -1,10 +1,12 @@
 package routes
 
 import (
+	"kanban-management/internal/storage"
+
 	"github.com/gofiber/fiber/v2"
 )
 
-func RegisterRoutes(app *fiber.App) {
+func RegisterRoutes(app *fiber.App, store storage.Storage) {
 	RegisterAuthRoutes(app)
 	RegisterUsersRoutes(app)
 	RegisterWorkspaceRoutes(app)
@@ -13,4 +15,5 @@ func RegisterRoutes(app *fiber.App) {
 	RegisterCardRoutes(app)
 	RegisterLabelRoutes(app)
 	RegisterCommentRoutes(app)
+	RegisterAttachmentRoutes(app, store)
 }
