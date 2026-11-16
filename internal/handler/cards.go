@@ -25,6 +25,7 @@ type createCardRequest struct {
 	ColumnID    string          `json:"column_id"`
 	AssigneeIDs []bson.ObjectID `json:"assignee_ids"`
 	Priority    *string         `json:"priority"`
+	DueDate     *string         `json:"due_date"`
 }
 
 // Só estes campos podem ser alterados via PATCH /card/:card_id.
@@ -33,6 +34,8 @@ type patchCardRequest struct {
 	Description *string          `json:"description"`
 	AssigneeIDs *[]bson.ObjectID `json:"assignee_ids"`
 	Priority    *string          `json:"priority"`
+	// DueDate fica como RawMessage para distinguir ausente (ignora) de null (remove).
+	DueDate json.RawMessage `json:"due_date"`
 }
 
 type moveCardRequest struct {
@@ -92,7 +95,7 @@ func GetCards() fiber.Handler {
 			return http.ServerError(c, err, "Fail to decode cards")
 		}
 
-		return http.Success(c, 200, cards)
+		return http.Success(c, 200, models.ToCardResponses(cards, time.Now()))
 	}
 }
 
@@ -170,6 +173,18 @@ func CreateCard() fiber.Handler {
 			}
 		}
 
+		var dueDate *time.Time
+
+		if request.DueDate != nil {
+			parsed, err := models.ParseDueDate(*request.DueDate)
+
+			if err != nil {
+				return invalidCardResponse(c, models.InvalidDueDateMessage)
+			}
+
+			dueDate = &parsed
+		}
+
 		position, err := services.NextPosition(ctx, boardID, request.ColumnID)
 
 		if err != nil {
@@ -194,6 +209,7 @@ func CreateCard() fiber.Handler {
 			Priority:      priority,
 			PriorityLevel: priority.Level(),
 			AssigneeIDs:   assignees,
+			DueDate:       dueDate,
 			CreatedBy:     &userID,
 			CreatedAt:     now,
 			UpdatedAt:     now,
@@ -215,7 +231,7 @@ func CreateCard() fiber.Handler {
 
 		slog.Info("card.created", "card_id", insertedID.Hex(), "board_id", boardID.Hex(), "user_id", userID.Hex())
 
-		return http.Success(c, 201, card)
+		return http.Success(c, 201, models.ToCardResponse(card, now))
 	}
 }
 
@@ -261,7 +277,7 @@ func GetCard() fiber.Handler {
 			return err
 		}
 
-		return http.Success(c, 200, card)
+		return http.Success(c, 200, models.ToCardResponse(*card, time.Now()))
 	}
 }
 
@@ -330,13 +346,41 @@ func PatchCard() fiber.Handler {
 			updates["priority_level"] = priority.Level()
 		}
 
-		if len(updates) == 0 {
+		unsets := bson.M{}
+
+		if len(request.DueDate) > 0 {
+			if string(request.DueDate) == "null" {
+				unsets["due_date"] = ""
+			} else {
+				var raw string
+
+				if err := json.Unmarshal(request.DueDate, &raw); err != nil {
+					return invalidCardResponse(c, models.InvalidDueDateMessage)
+				}
+
+				dueDate, err := models.ParseDueDate(raw)
+
+				if err != nil {
+					return invalidCardResponse(c, models.InvalidDueDateMessage)
+				}
+
+				updates["due_date"] = dueDate
+			}
+		}
+
+		if len(updates) == 0 && len(unsets) == 0 {
 			return invalidCardResponse(c, "No valid field to update")
 		}
 
 		updates["updated_at"] = time.Now()
 
-		_, err = database.GetCollection("cards").UpdateByID(ctx, *card.ID, bson.M{"$set": updates})
+		update := bson.M{"$set": updates}
+
+		if len(unsets) > 0 {
+			update["$unset"] = unsets
+		}
+
+		_, err = database.GetCollection("cards").UpdateByID(ctx, *card.ID, update)
 
 		if err != nil {
 			return http.ServerError(c, err, "Error to update card")
@@ -344,7 +388,13 @@ func PatchCard() fiber.Handler {
 
 		slog.Info("card.updated", "card_id", card.ID.Hex(), "user_id", userID.Hex())
 
-		return http.Success(c, 200, "Updated")
+		updated, err := services.FindActiveCard(ctx, *card.ID)
+
+		if err != nil {
+			return http.ServerError(c, err, "Error to load updated card")
+		}
+
+		return http.Success(c, 200, models.ToCardResponse(*updated, time.Now()))
 	}
 }
 
@@ -418,7 +468,7 @@ func MoveCard() fiber.Handler {
 		card.Position = position
 		card.UpdatedAt = now
 
-		return http.Success(c, 200, card)
+		return http.Success(c, 200, models.ToCardResponse(*card, now))
 	}
 }
 

@@ -21,5 +21,8 @@ type Card struct {
 	CreatedBy     *bson.ObjectID  `bson:"created_by" json:"created_by"`
 	CreatedAt     time.Time       `bson:"created_at" json:"created_at"`
 	UpdatedAt     time.Time       `bson:"updated_at" json:"updated_at"`
+	DueDate       *time.Time      `bson:"due_date,omitempty" json:"due_date"`
+	CompletedAt   *time.Time      `bson:"completed_at,omitempty" json:"completed_at"`
+	CompletedBy   *bson.ObjectID  `bson:"completed_by,omitempty" json:"completed_by"`
 	DeletedAt     *time.Time      `bson:"deleted_at,omitempty" json:"deleted_at,omitempty"`
 }
