@@ -9,6 +9,7 @@ import (
 	"kanban-management/internal/middleware"
 	"kanban-management/internal/models"
 	"kanban-management/internal/pagination"
+	"kanban-management/internal/search"
 	"kanban-management/internal/services"
 	"log/slog"
 	"time"
@@ -68,10 +69,22 @@ func MyProjects() fiber.Handler {
 			return invalidCardResponse(c, pagination.InvalidParamsMessage)
 		}
 
-		projects, total, err := pagination.Fetch[models.Project](ctx, collection, bson.M{
+		filter := bson.M{
 			"_id": bson.M{"$in": projectIDs},
 			"$or": services.NotDeleted(),
-		}, bson.D{{Key: "created_at", Value: -1}, {Key: "_id", Value: -1}}, params)
+		}
+
+		terms, searching, err := searchTerms(c)
+
+		if err != nil {
+			return invalidCardResponse(c, search.InvalidQueryMessage)
+		}
+
+		if searching {
+			filter["$and"] = search.RegexFilter("search_text", terms)["$and"]
+		}
+
+		projects, total, err := pagination.Fetch[models.Project](ctx, collection, filter, bson.D{{Key: "created_at", Value: -1}, {Key: "_id", Value: -1}}, params)
 
 		if err != nil {
 			return http.ServerError(c, err, "Error to get projects")
@@ -121,6 +134,7 @@ func CreateProject() fiber.Handler {
 			}, "Workspace not found")
 		}
 
+		project.SearchText = search.BuildText(project.Name, project.Descritpion)
 		project.Owner_id = userID
 		project.Status = "active"
 
@@ -222,6 +236,30 @@ func PatchProject() fiber.Handler {
 
 		if _, err := services.AuthorizeProject(ctx, userID, projectID, services.ActionProjectUpdate); err != nil {
 			return respondAuthError(c, err)
+		}
+
+		// search_text acompanha nome e descrição (pega o valor atual do que não mudou).
+		_, nameChanged := updates["name"].(string)
+		_, descriptionChanged := updates["description"].(string)
+
+		if nameChanged || descriptionChanged {
+			var current models.Project
+
+			if err := collection.FindOne(ctx, bson.M{"_id": projectID}).Decode(&current); err != nil {
+				return http.ServerError(c, err, "Error to load project")
+			}
+
+			name, description := current.Name, current.Descritpion
+
+			if v, ok := updates["name"].(string); ok {
+				name = v
+			}
+
+			if v, ok := updates["description"].(string); ok {
+				description = v
+			}
+
+			updates["search_text"] = search.BuildText(name, description)
 		}
 
 		updates["updated_at"] = time.Now()

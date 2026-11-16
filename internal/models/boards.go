@@ -17,7 +17,9 @@ type Board struct {
 	Background  *string        `bson:"background" json:"background"`
 	CreatedAt   time.Time      `bson:"created_at" json:"created_at"`
 	UpdatedAt   time.Time      `bson:"updated_at" json:"updated_at"`
-	DeletedAt   *time.Time     `bson:"deleted_at,omitempty" json:"deleted_at,omitempty"`
+	// SearchText: nome normalizado (sem acentos, minúsculas); só para busca.
+	SearchText string     `bson:"search_text" json:"-"`
+	DeletedAt  *time.Time `bson:"deleted_at,omitempty" json:"deleted_at,omitempty"`
 }
 
 type Column struct {
@@ -36,7 +38,7 @@ type Member struct {
 	UserID    *bson.ObjectID `bson:"user_id" json:"user_id"`
 	Name      *string        `bson:"name" json:"name"`
 	Role      *string        `bson:"role" json:"role"`
-	CreatedAt time.Time  `bson:"created_at" json:"created_at"`
-	UpdatedAt time.Time  `bson:"updated_at" json:"updated_at"`
-	DeletedAt *time.Time `bson:"deleted_at,omitempty" json:"deleted_at,omitempty"`
+	CreatedAt time.Time      `bson:"created_at" json:"created_at"`
+	UpdatedAt time.Time      `bson:"updated_at" json:"updated_at"`
+	DeletedAt *time.Time     `bson:"deleted_at,omitempty" json:"deleted_at,omitempty"`
 }

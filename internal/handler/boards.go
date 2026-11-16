@@ -9,6 +9,7 @@ import (
 	"kanban-management/internal/middleware"
 	"kanban-management/internal/models"
 	"kanban-management/internal/pagination"
+	"kanban-management/internal/search"
 	"kanban-management/internal/services"
 	"log/slog"
 	"slices"
@@ -23,6 +24,7 @@ var boardProtectedFields = []string{
 	"_id",
 	"id",
 	"project_id",
+	"search_text",
 	"created_at",
 	"updated_at",
 	"deleted_at",
@@ -80,10 +82,22 @@ func GetBoards() fiber.Handler {
 			return invalidCardResponse(c, pagination.InvalidParamsMessage)
 		}
 
-		boards, total, err := pagination.Fetch[models.Board](context.Background(), database.GetCollection("boards"), bson.M{
+		filter := bson.M{
 			"project_id": projectID,
 			"$or":        services.NotDeleted(),
-		}, bson.D{{Key: "created_at", Value: -1}, {Key: "_id", Value: -1}}, params)
+		}
+
+		terms, searching, err := searchTerms(c)
+
+		if err != nil {
+			return invalidCardResponse(c, search.InvalidQueryMessage)
+		}
+
+		if searching {
+			filter["$and"] = search.RegexFilter("search_text", terms)["$and"]
+		}
+
+		boards, total, err := pagination.Fetch[models.Board](context.Background(), database.GetCollection("boards"), filter, bson.D{{Key: "created_at", Value: -1}, {Key: "_id", Value: -1}}, params)
 
 		if err != nil {
 			return http.ServerError(c, err, "Fail to get project boards")
@@ -183,6 +197,7 @@ func CreateBoard() fiber.Handler {
 
 		now := time.Now()
 
+		board.SearchText = search.BuildText(*board.Name)
 		board.ID = nil
 		board.ProjectID = &projectID
 		board.DeletedAt = nil
@@ -283,6 +298,10 @@ func PatchBoard() fiber.Handler {
 
 		if _, err := services.AuthorizeProject(context.Background(), userID, *board.ProjectID, services.ActionBoardManage); err != nil {
 			return respondAuthError(c, err)
+		}
+
+		if name, ok := updates["name"].(string); ok {
+			updates["search_text"] = search.BuildText(name)
 		}
 
 		updates["updated_at"] = time.Now()

@@ -16,6 +16,7 @@ func RegisterCardRoutes(app *fiber.App) {
 
 	// Calendário: cards do projeto com entrega no intervalo
 	card.Get("/project/:project_id/due", handler.GetCardsDue())
+	card.Get("/project/:project_id/search", handler.SearchProjectCards())
 
 	// Card específico
 	card.Get("/:card_id", handler.GetCard())

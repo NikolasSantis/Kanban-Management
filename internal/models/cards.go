@@ -16,6 +16,8 @@ type Card struct {
 	Position    float64        `bson:"position" json:"position"`
 	Priority    Priority       `bson:"priority" json:"priority"`
 	// PriorityLevel é controlado pelo servidor (usado para ordenar); nunca vai no JSON.
+	// SearchText: título + descrição normalizados (sem acentos, minúsculas); só para busca.
+	SearchText    string          `bson:"search_text" json:"-"`
 	PriorityLevel int             `bson:"priority_level" json:"-"`
 	AssigneeIDs   []bson.ObjectID `bson:"assignee_ids" json:"assignee_ids"`
 	CreatedBy     *bson.ObjectID  `bson:"created_by" json:"created_by"`
