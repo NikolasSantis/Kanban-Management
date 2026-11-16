@@ -2,9 +2,11 @@ package services
 
 import (
 	"kanban-management/internal/events"
+	boardListeners "kanban-management/internal/listeners/boards"
 	cardListeners "kanban-management/internal/listeners/cards"
 	labelListeners "kanban-management/internal/listeners/labels"
 	project "kanban-management/internal/listeners/project_members"
+	projectListeners "kanban-management/internal/listeners/projects"
 	"kanban-management/internal/listeners/workspace"
 )
 
@@ -27,6 +29,11 @@ func RegisterEvents() {
 	)
 
 	Dispatcher.Register(
+		"workspace.deleted",
+		projectListeners.CascadeWorkspaceDeleted(Dispatcher),
+	)
+
+	Dispatcher.Register(
 		"project.created",
 		project.HandleProjectCreated,
 	)
@@ -36,6 +43,11 @@ func RegisterEvents() {
 	Dispatcher.Register(
 		"project.deleted",
 		project.HandleProjectDeleted,
+	)
+
+	Dispatcher.Register(
+		"project.deleted",
+		boardListeners.CascadeProjectDeleted(Dispatcher),
 	)
 
 	// board.deleted → cards e labels do board.

@@ -12,12 +12,13 @@ import (
 
 // boardScenario monta: admin (dono do projeto), manager, member e outsider (não-membro).
 type boardScenario struct {
-	app       *fiber.App
-	admin     testutil.User
-	manager   testutil.User
-	member    testutil.User
-	outsider  testutil.User
-	projectID string
+	app         *fiber.App
+	admin       testutil.User
+	manager     testutil.User
+	member      testutil.User
+	outsider    testutil.User
+	workspaceID string
+	projectID   string
 }
 
 func newBoardScenario(t *testing.T) boardScenario {
@@ -34,6 +35,7 @@ func newBoardScenario(t *testing.T) boardScenario {
 	}
 
 	workspaceID := testutil.CreateWorkspace(t, app, s.admin.Token)
+	s.workspaceID = workspaceID
 	s.projectID = testutil.CreateProject(t, app, s.admin.Token, workspaceID)
 
 	testutil.AddProjectMember(t, app, s.admin.Token, s.projectID, s.manager.ID, "manager")
