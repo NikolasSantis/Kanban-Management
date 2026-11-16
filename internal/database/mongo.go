@@ -67,6 +67,12 @@ func CreateIndexes() error {
 				{Key: "project_id", Value: 1},
 			},
 		},
+		{
+			Keys: bson.D{
+				{Key: "board_id", Value: 1},
+				{Key: "priority_level", Value: -1},
+			},
+		},
 	})
 
 	return err

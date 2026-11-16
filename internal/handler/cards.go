@@ -24,6 +24,7 @@ type createCardRequest struct {
 	Description *string         `json:"description"`
 	ColumnID    string          `json:"column_id"`
 	AssigneeIDs []bson.ObjectID `json:"assignee_ids"`
+	Priority    *string         `json:"priority"`
 }
 
 // Só estes campos podem ser alterados via PATCH /card/:card_id.
@@ -31,6 +32,7 @@ type patchCardRequest struct {
 	Title       *string          `json:"title"`
 	Description *string          `json:"description"`
 	AssigneeIDs *[]bson.ObjectID `json:"assignee_ids"`
+	Priority    *string          `json:"priority"`
 }
 
 type moveCardRequest struct {
@@ -158,6 +160,16 @@ func CreateCard() fiber.Handler {
 			return http.ServerError(c, err, "Fail to validate assignees")
 		}
 
+		priority := models.PriorityDefault
+
+		if request.Priority != nil {
+			priority, err = models.ParsePriority(*request.Priority)
+
+			if err != nil {
+				return invalidCardResponse(c, models.InvalidPriorityMessage)
+			}
+		}
+
 		position, err := services.NextPosition(ctx, boardID, request.ColumnID)
 
 		if err != nil {
@@ -173,16 +185,18 @@ func CreateCard() fiber.Handler {
 		}
 
 		card := models.Card{
-			ProjectID:   board.ProjectID,
-			BoardID:     &boardID,
-			ColumnID:    &request.ColumnID,
-			Title:       &title,
-			Description: request.Description,
-			Position:    position,
-			AssigneeIDs: assignees,
-			CreatedBy:   &userID,
-			CreatedAt:   now,
-			UpdatedAt:   now,
+			ProjectID:     board.ProjectID,
+			BoardID:       &boardID,
+			ColumnID:      &request.ColumnID,
+			Title:         &title,
+			Description:   request.Description,
+			Position:      position,
+			Priority:      priority,
+			PriorityLevel: priority.Level(),
+			AssigneeIDs:   assignees,
+			CreatedBy:     &userID,
+			CreatedAt:     now,
+			UpdatedAt:     now,
 		}
 
 		result, err := database.GetCollection("cards").InsertOne(ctx, card)
@@ -303,6 +317,17 @@ func PatchCard() fiber.Handler {
 			}
 
 			updates["assignee_ids"] = assignees
+		}
+
+		if request.Priority != nil {
+			priority, err := models.ParsePriority(*request.Priority)
+
+			if err != nil {
+				return invalidCardResponse(c, models.InvalidPriorityMessage)
+			}
+
+			updates["priority"] = priority
+			updates["priority_level"] = priority.Level()
 		}
 
 		if len(updates) == 0 {
