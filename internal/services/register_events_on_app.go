@@ -68,6 +68,12 @@ func RegisterEvents() {
 		commentListeners.HandleCardDeleted,
 	)
 
+	// card.deleted → anexos do card (os arquivos físicos ficam no storage).
+	Dispatcher.Register(
+		"card.deleted",
+		commentListeners.HandleCardDeletedAttachments,
+	)
+
 	// label.deleted → remove a label dos cards.
 	Dispatcher.Register(
 		"label.deleted",
