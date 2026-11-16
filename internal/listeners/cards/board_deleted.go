@@ -18,10 +18,7 @@ func HandleBoardDeleted(event events.Event) error {
 
 	_, err := database.GetCollection("cards").UpdateMany(e.Ctx, bson.M{
 		"board_id": e.BoardID,
-		"$or": []bson.M{ // não importa services (ciclo): mesmo filtro de services.NotDeleted
-			{"deleted_at": bson.M{"$exists": false}},
-			{"deleted_at": nil},
-		},
+		"$or":      database.NotDeleted(),
 	}, bson.M{
 		"$set": bson.M{
 			"deleted_at": now,

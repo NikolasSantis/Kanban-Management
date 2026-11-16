@@ -18,10 +18,7 @@ func HandleProjectDeleted(event events.Event) error {
 
 	_, err := database.GetCollection("project_members").UpdateMany(e.Ctx, bson.M{
 		"project_id": e.ProjectID,
-		"$or": []bson.M{ // mesmo filtro de services.NotDeleted (sem importar services: ciclo)
-			{"deleted_at": bson.M{"$exists": false}},
-			{"deleted_at": nil},
-		},
+		"$or":        database.NotDeleted(),
 	}, bson.M{
 		"$set": bson.M{
 			"deleted_at": now,

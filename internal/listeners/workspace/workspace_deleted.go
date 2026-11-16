@@ -19,10 +19,7 @@ func HandleWorkspaceDeleted(event events.Event) error {
 	// Só os membros ativos: não sobrescreve o deleted_at de quem já tinha saído.
 	_, err := collection.UpdateMany(e.Ctx, bson.M{
 		"workspace_id": e.WorkspaceID,
-		"$or": []bson.M{ // mesmo filtro de services.NotDeleted (sem importar services: ciclo)
-			{"deleted_at": bson.M{"$exists": false}},
-			{"deleted_at": nil},
-		},
+		"$or":          database.NotDeleted(),
 	}, bson.M{
 		"$set": bson.M{
 			"deleted_at": now,
