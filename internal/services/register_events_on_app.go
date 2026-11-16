@@ -29,6 +29,11 @@ func RegisterEvents() {
 	)
 
 	Dispatcher.Register(
+		"project.deleted",
+		project.HandleProjectDeleted,
+	)
+
+	Dispatcher.Register(
 		"board.deleted",
 		cardListeners.HandleBoardDeleted,
 	)

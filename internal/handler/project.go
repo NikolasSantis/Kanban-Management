@@ -290,6 +290,17 @@ func DeleteProject() fiber.Handler {
 			return http.ServerError(c, nil, "No project modified")
 		}
 
+		err = services.Dispatcher.Dispatch(
+			projectEvent.ProjectDeletedEvent{
+				ProjectID: projectID,
+				Ctx:       ctx,
+			},
+		)
+
+		if err != nil {
+			return http.ServerError(c, err, "Fail to dispatch project deleted event")
+		}
+
 		slog.Info("project.deleted", "project_id", projectID.Hex(), "user_id", userID.Hex())
 
 		return http.Success(c, 200, "deleted")
