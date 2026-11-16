@@ -137,3 +137,40 @@ func Fetch[T any](ctx context.Context, collection *mongo.Collection, filter bson
 
 	return items, total, nil
 }
+
+// FetchPipeline é o Fetch com uma aggregation ($match → $addFields → $sort →
+// $skip → $limit). Usado quando a ordenação precisa de um campo calculado
+// (ex.: cards sem data de entrega no fim). O count usa o mesmo filtro.
+func FetchPipeline[T any](ctx context.Context, collection *mongo.Collection, filter bson.M, addFields bson.M, sort bson.D, p Params) ([]T, int64, error) {
+	total, err := collection.CountDocuments(ctx, filter)
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	items := []T{}
+
+	if total == 0 || p.Skip() >= total {
+		return items, total, nil
+	}
+
+	cursor, err := collection.Aggregate(ctx, mongo.Pipeline{
+		{{Key: "$match", Value: filter}},
+		{{Key: "$addFields", Value: addFields}},
+		{{Key: "$sort", Value: sort}},
+		{{Key: "$skip", Value: p.Skip()}},
+		{{Key: "$limit", Value: int64(p.Limit)}},
+	})
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	defer cursor.Close(ctx)
+
+	if err := cursor.All(ctx, &items); err != nil {
+		return nil, 0, err
+	}
+
+	return items, total, nil
+}
