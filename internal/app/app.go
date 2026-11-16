@@ -44,6 +44,8 @@ func New(cfg *config.Config) *fiber.App {
 		},
 	}))
 
+	registerSwagger(app, cfg)
+
 	routes.RegisterRoutes(app, storage.New(cfg))
 
 	return app

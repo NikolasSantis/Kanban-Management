@@ -26,6 +26,7 @@ type Config struct {
 	AttachmentMaxSizeMB int
 	StorageDriver       string
 	StorageLocalPath    string
+	SwaggerEnabled      bool
 }
 
 var current *Config
@@ -64,6 +65,14 @@ func Load() (*Config, error) {
 	cfg.LogFormat = getEnv("LOG_FORMAT", defaultLogFormat)
 	cfg.StorageDriver = getEnv("STORAGE_DRIVER", "local")
 	cfg.StorageLocalPath = getEnv("STORAGE_LOCAL_PATH", "./uploads")
+
+	swaggerEnabled, swaggerErr := getEnvBool("SWAGGER_ENABLED", true)
+
+	if swaggerErr != nil {
+		errs = append(errs, swaggerErr)
+	}
+
+	cfg.SwaggerEnabled = swaggerEnabled
 
 	var err error
 
@@ -148,6 +157,20 @@ func getEnvInt(key string, def int) (int, error) {
 	value, err := strconv.Atoi(raw)
 	if err != nil || value <= 0 {
 		return 0, fmt.Errorf("%s deve ser um inteiro maior que zero (recebido %q)", key, raw)
+	}
+
+	return value, nil
+}
+
+func getEnvBool(key string, def bool) (bool, error) {
+	raw := os.Getenv(key)
+	if raw == "" {
+		return def, nil
+	}
+
+	value, err := strconv.ParseBool(raw)
+	if err != nil {
+		return false, fmt.Errorf("%s deve ser true ou false (recebido %q)", key, raw)
 	}
 
 	return value, nil

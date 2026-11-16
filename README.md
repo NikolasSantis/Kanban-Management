@@ -110,3 +110,25 @@ MONGODB_URI=mongodb://localhost:27017 DATABASE_NAME=kanban_management TEST_DATAB
 No PowerShell: defina as variáveis com `$env:MONGODB_URI = "mongodb://localhost:27017"` (e as demais) antes do `go test`.
 
 > Estes arquivos foram escritos e revisados, mas ainda **não foram executados** (build da imagem, `docker compose up`): o Docker não estava instalado na máquina onde foram criados.
+
+
+## Documentação (Swagger)
+
+Com a API no ar: `http://localhost:8000/swagger/index.html` (JSON em `/swagger/doc.json`). Clique em **Authorize** e informe `Bearer <token>` (o token vem de `POST /auth/login`). Para desligar: `SWAGGER_ENABLED=false`.
+
+- A documentação é gerada pelo [swag](https://github.com/swaggo/swag) a partir dos comentários dos handlers e dos tipos de `internal/dto`. A pasta `docs/` gerada **é versionada** (a API sobe sem rodar o `swag`).
+- Versão fixada do `swag`: **v1.16.6** (o binário imprime `v1.16.4` em `--version`; é um detalhe do projeto deles, o módulo é o v1.16.6).
+
+```bash
+go install github.com/swaggo/swag/cmd/swag@v1.16.6
+swag init -g cmd/api/main.go -o docs --parseInternal      # regenera docs/ (rode sempre que mudar uma rota)
+make swagger                                              # swag fmt + swag init
+make swagger-check                                        # falha se docs/ estiver desatualizada (para CI)
+```
+
+Observações:
+
+- O `swag init` imprime o aviso `failed to get package name in dir: ./` (a raiz do repositório não tem arquivos Go); é inofensivo.
+- O `swag fmt` reformata os arquivos Go, e no Windows isso pode trocar as quebras de linha (CRLF → LF) de arquivos que você não mexeu: confira o `git status` antes de commitar.
+- O swag não resolveu envelopes genéricos (`SuccessResponse[T]`) com os tipos deste projeto, então o Swagger usa os envelopes concretos de `internal/dto/envelopes.go` (um por tipo de `data`). Ao criar uma rota nova, acrescente o envelope em `ENVELOPES` do gerador ou escreva o tipo à mão.
+- Os schemas de resposta nunca mostram `password`, `storage_key`, `search_text`, `priority_level`, `name_normalized` nem `active` (campos `json:"-"` ou DTO sem eles); `internal/app/swagger_test.go` confere isso e também que toda rota registrada está documentada.

@@ -1,0 +1,3613 @@
+basePath: /
+definitions:
+  dto.AttachmentEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/models.AttachmentResponse'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.BoardEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/models.Board'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.CardEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/models.CardResponse'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.CardListEnvelope:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/models.CardResponse'
+        type: array
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.ColumnEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/models.Column'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.ColumnInput:
+    properties:
+      color:
+        example: '#0079bf'
+        type: string
+      icon:
+        example: list
+        type: string
+      id:
+        example: todo
+        type: string
+      name:
+        example: A fazer
+        type: string
+      position:
+        example: 1
+        type: integer
+    type: object
+  dto.CommentEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/models.CommentResponse'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.CreateBoardRequest:
+    properties:
+      background:
+        example: blue
+        type: string
+      color:
+        example: '#0079bf'
+        type: string
+      columns:
+        items:
+          $ref: '#/definitions/dto.ColumnInput'
+        type: array
+      description:
+        example: Tarefas da sprint
+        type: string
+      name:
+        example: Sprint 12
+        type: string
+    type: object
+  dto.CreateCardRequest:
+    properties:
+      assignee_ids:
+        example:
+        - 6a8f82d0a830f44ec741fb7c
+        items:
+          type: string
+        type: array
+      column_id:
+        example: todo
+        type: string
+      description:
+        example: Usar JWT
+        type: string
+      due_date:
+        description: 'DueDate: RFC 3339 ou só a data (YYYY-MM-DD, vira 23:59:59Z),
+          entre 2000 e 10 anos à frente.'
+        example: "2026-12-01T23:59:59Z"
+        type: string
+      label_ids:
+        example:
+        - 6a8f82d0a830f44ec741fb7c
+        items:
+          type: string
+        type: array
+      priority:
+        enum:
+        - low
+        - medium
+        - high
+        - urgent
+        example: high
+        type: string
+      title:
+        example: Implementar login
+        type: string
+    type: object
+  dto.CreateColumnRequest:
+    properties:
+      color:
+        example: '#f2d600'
+        type: string
+      icon:
+        example: eye
+        type: string
+      id:
+        example: review
+        type: string
+      name:
+        example: Em revisão
+        type: string
+      position:
+        example: 3
+        type: integer
+    type: object
+  dto.CreateCommentRequest:
+    properties:
+      content:
+        example: Vou olhar isso amanhã.
+        type: string
+    type: object
+  dto.CreateLabelRequest:
+    properties:
+      color:
+        example: '#eb5a46'
+        type: string
+      name:
+        example: Bug
+        type: string
+    type: object
+  dto.CreateLinkAttachmentRequest:
+    properties:
+      name:
+        example: Especificação
+        type: string
+      url:
+        example: https://exemplo.com/spec
+        type: string
+    type: object
+  dto.CreateProjectRequest:
+    properties:
+      description:
+        example: Versão para celular
+        type: string
+      name:
+        example: Aplicativo móvel
+        type: string
+      workspace_id:
+        example: 6a8f82d0a830f44ec741fb7c
+        type: string
+    type: object
+  dto.CreateWorkspaceRequest:
+    properties:
+      description:
+        example: Tudo da minha empresa
+        type: string
+      name:
+        example: Minha empresa
+        type: string
+    type: object
+  dto.ErrorData:
+    properties:
+      error:
+        example: Not found
+        type: string
+    type: object
+  dto.ErrorResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.ErrorData'
+      error:
+        example: Not found
+        type: string
+      success:
+        example: false
+        type: boolean
+    type: object
+  dto.HealthData:
+    properties:
+      status:
+        enum:
+        - ok
+        - unavailable
+        example: ok
+        type: string
+    type: object
+  dto.HealthEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/dto.HealthData'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.HealthErrorResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.HealthData'
+      error:
+        example: Database unavailable
+        type: string
+      success:
+        example: false
+        type: boolean
+    type: object
+  dto.LabelEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/models.Label'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.LoginRequest:
+    properties:
+      email:
+        example: ana@exemplo.com
+        type: string
+      password:
+        example: minha-senha-forte
+        type: string
+    type: object
+  dto.MemberRequest:
+    properties:
+      role:
+        enum:
+        - member
+        - manager
+        - admin
+        example: member
+        type: string
+      user_id:
+        example: 6a8f82d0a830f44ec741fb7c
+        type: string
+    type: object
+  dto.MessageData:
+    properties:
+      message:
+        example: Updated
+        type: string
+    type: object
+  dto.MessageEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/dto.MessageData'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.MoveCardRequest:
+    properties:
+      after_card_id:
+        example: 6a8f82d0a830f44ec741fb7d
+        type: string
+      before_card_id:
+        example: 6a8f82d0a830f44ec741fb7c
+        type: string
+      column_id:
+        example: doing
+        type: string
+    type: object
+  dto.PageAttachments:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/models.AttachmentResponse'
+        type: array
+      pagination:
+        $ref: '#/definitions/pagination.Meta'
+    type: object
+  dto.PageAttachmentsEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/dto.PageAttachments'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.PageBoards:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/models.Board'
+        type: array
+      pagination:
+        $ref: '#/definitions/pagination.Meta'
+    type: object
+  dto.PageBoardsEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/dto.PageBoards'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.PageCards:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/models.CardResponse'
+        type: array
+      pagination:
+        $ref: '#/definitions/pagination.Meta'
+    type: object
+  dto.PageCardsEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/dto.PageCards'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.PageComments:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/models.CommentResponse'
+        type: array
+      pagination:
+        $ref: '#/definitions/pagination.Meta'
+    type: object
+  dto.PageCommentsEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/dto.PageComments'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.PageLabels:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/models.Label'
+        type: array
+      pagination:
+        $ref: '#/definitions/pagination.Meta'
+    type: object
+  dto.PageLabelsEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/dto.PageLabels'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.PageProjectMembers:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/models.ProjectMember'
+        type: array
+      pagination:
+        $ref: '#/definitions/pagination.Meta'
+    type: object
+  dto.PageProjectMembersEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/dto.PageProjectMembers'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.PageProjects:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/models.Project'
+        type: array
+      pagination:
+        $ref: '#/definitions/pagination.Meta'
+    type: object
+  dto.PageProjectsEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/dto.PageProjects'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.PageWorkspaceMembers:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/models.WorkspaceMember'
+        type: array
+      pagination:
+        $ref: '#/definitions/pagination.Meta'
+    type: object
+  dto.PageWorkspaceMembersEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/dto.PageWorkspaceMembers'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.PageWorkspaces:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/models.Workspace'
+        type: array
+      pagination:
+        $ref: '#/definitions/pagination.Meta'
+    type: object
+  dto.PageWorkspacesEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/dto.PageWorkspaces'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.ProjectEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/models.Project'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.ProjectMemberEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/models.ProjectMember'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.RegisterData:
+    properties:
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.RegisterEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/dto.RegisterData'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.RegisterRequest:
+    properties:
+      email:
+        example: ana@exemplo.com
+        type: string
+      name:
+        example: Ana Souza
+        type: string
+      password:
+        example: minha-senha-forte
+        type: string
+    type: object
+  dto.RemoveMemberRequest:
+    properties:
+      user_id:
+        example: 6a8f82d0a830f44ec741fb7c
+        type: string
+    type: object
+  dto.StringEnvelope:
+    properties:
+      data:
+        type: string
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.TokenData:
+    properties:
+      token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+    type: object
+  dto.TokenEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/dto.TokenData'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.UpdateBoardRequest:
+    properties:
+      background:
+        example: blue
+        type: string
+      color:
+        example: '#0079bf'
+        type: string
+      columns:
+        items:
+          $ref: '#/definitions/dto.ColumnInput'
+        type: array
+      description:
+        example: Tarefas da sprint
+        type: string
+      name:
+        example: Sprint 12
+        type: string
+    type: object
+  dto.UpdateCardRequest:
+    properties:
+      assignee_ids:
+        example:
+        - 6a8f82d0a830f44ec741fb7c
+        items:
+          type: string
+        type: array
+      description:
+        example: Usar JWT
+        type: string
+      due_date:
+        example: "2026-12-01"
+        type: string
+      label_ids:
+        example:
+        - 6a8f82d0a830f44ec741fb7c
+        items:
+          type: string
+        type: array
+      priority:
+        enum:
+        - low
+        - medium
+        - high
+        - urgent
+        example: urgent
+        type: string
+      title:
+        example: Implementar login
+        type: string
+    type: object
+  dto.UpdateColumnRequest:
+    properties:
+      color:
+        example: '#f2d600'
+        type: string
+      icon:
+        example: eye
+        type: string
+      name:
+        example: Em revisão
+        type: string
+      position:
+        example: 3
+        type: integer
+    type: object
+  dto.UpdateCommentRequest:
+    properties:
+      content:
+        example: Vou olhar isso hoje.
+        type: string
+    type: object
+  dto.UpdateLabelRequest:
+    properties:
+      color:
+        example: '#eb5a46'
+        type: string
+      name:
+        example: Bug
+        type: string
+    type: object
+  dto.UpdateProjectRequest:
+    properties:
+      description:
+        example: Versão para celular
+        type: string
+      name:
+        example: Aplicativo móvel
+        type: string
+      status:
+        example: active
+        type: string
+    type: object
+  dto.UpdateResultData:
+    properties:
+      Acknowledged:
+        example: true
+        type: boolean
+      MatchedCount:
+        example: 1
+        type: integer
+      ModifiedCount:
+        example: 1
+        type: integer
+      UpsertedCount:
+        example: 0
+        type: integer
+    type: object
+  dto.UpdateResultEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/dto.UpdateResultData'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.UpdateUserRequest:
+    properties:
+      email:
+        example: ana@exemplo.com
+        type: string
+      name:
+        example: Ana Souza
+        type: string
+    type: object
+  dto.UpdateWorkspaceRequest:
+    properties:
+      description:
+        example: Tudo da minha empresa
+        type: string
+      name:
+        example: Minha empresa
+        type: string
+    type: object
+  dto.UserEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/dto.UserResponse'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.UserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        example: ana@exemplo.com
+        type: string
+      email_verified_at:
+        type: string
+      expiration_date:
+        type: string
+      id:
+        example: 6a8f82d0a830f44ec741fb7c
+        type: string
+      name:
+        example: Ana Souza
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dto.WorkspaceEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/models.Workspace'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.WorkspaceMemberEnvelope:
+    properties:
+      data:
+        $ref: '#/definitions/models.WorkspaceMember'
+      error:
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  models.AttachmentResponse:
+    properties:
+      board_id:
+        type: string
+      card_id:
+        type: string
+      client_content_type:
+        description: ClientContentType é o tipo informado pelo cliente (dado informativo).
+        type: string
+      content_type:
+        description: ContentType é o tipo DETECTADO pelo conteúdo.
+        type: string
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      download_url:
+        type: string
+      file_name:
+        description: FileName é o nome sanitizado (o que vai na chave do storage).
+          Em links, é o nome informado.
+        type: string
+      id:
+        type: string
+      kind:
+        description: '"file" | "link"'
+        type: string
+      original_name:
+        description: OriginalName é o nome enviado pelo cliente (só para exibição
+          e download).
+        type: string
+      project_id:
+        type: string
+      size_bytes:
+        type: integer
+      uploaded_by:
+        type: string
+      url:
+        description: só para kind=link
+        type: string
+    type: object
+  models.Board:
+    properties:
+      background:
+        type: string
+      color:
+        type: string
+      columns:
+        items:
+          $ref: '#/definitions/models.Column'
+        type: array
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      members:
+        items:
+          $ref: '#/definitions/models.Member'
+        type: array
+      name:
+        type: string
+      project_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.CardResponse:
+    properties:
+      assignee_ids:
+        items:
+          type: string
+        type: array
+      board_id:
+        type: string
+      column_id:
+        type: string
+      completed_at:
+        type: string
+      completed_by:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: string
+      deleted_at:
+        type: string
+      description:
+        type: string
+      due_date:
+        type: string
+      id:
+        type: string
+      is_overdue:
+        type: boolean
+      label_ids:
+        items:
+          type: string
+        type: array
+      position:
+        type: number
+      priority:
+        $ref: '#/definitions/models.Priority'
+      project_id:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.Column:
+    properties:
+      color:
+        type: string
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      icon:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      position:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  models.CommentAuthor:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  models.CommentResponse:
+    properties:
+      author:
+        $ref: '#/definitions/models.CommentAuthor'
+      author_id:
+        type: string
+      board_id:
+        type: string
+      card_id:
+        type: string
+      content:
+        type: string
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      edited_at:
+        type: string
+      id:
+        type: string
+      project_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.Label:
+    properties:
+      board_id:
+        type: string
+      color:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: string
+      deleted_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      project_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.Member:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      role:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.Priority:
+    enum:
+    - low
+    - medium
+    - high
+    - urgent
+    - medium
+    type: string
+    x-enum-varnames:
+    - PriorityLow
+    - PriorityMedium
+    - PriorityHigh
+    - PriorityUrgent
+    - PriorityDefault
+  models.Project:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      owner_id:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+      workspace_id:
+        type: string
+    type: object
+  models.ProjectMember:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      id:
+        type: string
+      project_id:
+        type: string
+      role:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.Workspace:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      owner_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.WorkspaceMember:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      id:
+        type: string
+      role:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+      workspace_id:
+        type: string
+    type: object
+  pagination.Meta:
+    properties:
+      has_next:
+        type: boolean
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+info:
+  contact: {}
+  description: |-
+    API de Kanban: workspaces, projetos, boards, colunas, cards, labels, comentários e anexos.
+    Todas as respostas usam o envelope {success, data, error}. As listagens devolvem data = {items, pagination}.
+    Para autenticar: faça login em POST /auth/login, clique em "Authorize" e informe: Bearer <token>.
+  title: Kanban Management API
+  version: "1.0"
+paths:
+  /attachment/{attachment_id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID do anexo (ObjectID)
+        in: path
+        name: attachment_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.StringEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Só quem enviou, ou manager/admin
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Apaga um anexo (soft delete)
+      tags:
+      - attachments
+  /attachment/{attachment_id}/download:
+    get:
+      description: Passa pela API, com checagem de permissão.
+      parameters:
+      - description: ID do anexo (ObjectID)
+        in: path
+        name: attachment_id
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: Bytes do arquivo
+          schema:
+            type: file
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Baixa o arquivo de um anexo
+      tags:
+      - attachments
+  /attachment/card/{card_id}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID do card (ObjectID)
+        in: path
+        name: card_id
+        required: true
+        type: string
+      - default: 1
+        description: Página (padrão 1)
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Itens por página (padrão 20, máximo 100)
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - description: file ou link
+        enum:
+        - file
+        - link
+        in: query
+        name: kind
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PageAttachmentsEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Lista os anexos de um card
+      tags:
+      - attachments
+    post:
+      consumes:
+      - multipart/form-data
+      description: O tipo é detectado pelo conteúdo, não pela extensão.
+      parameters:
+      - description: ID do card (ObjectID)
+        in: path
+        name: card_id
+        required: true
+        type: string
+      - description: Arquivo (png, jpeg, gif, webp, pdf, txt ou zip; até ATTACHMENT_MAX_SIZE_MB)
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.AttachmentEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Limite de 20 anexos por card
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "413":
+          description: Arquivo grande demais
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Anexa um arquivo ao card
+      tags:
+      - attachments
+  /attachment/card/{card_id}/link:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID do card (ObjectID)
+        in: path
+        name: card_id
+        required: true
+        type: string
+      - description: Nome e URL (http ou https)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateLinkAttachmentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.AttachmentEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Limite de 20 anexos por card
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Anexa um link ao card
+      tags:
+      - attachments
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: 'Devolve o token JWT; use no botão Authorize como: Bearer <token>.'
+      parameters:
+      - description: Credenciais
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.TokenEnvelope'
+        "400":
+          description: Corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: E-mail ou senha incorretos (ou conta deletada)
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Faz login
+      tags:
+      - auth
+  /auth/me:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserEnvelope'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Usuário não encontrado
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Dados do usuário logado
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Dados do usuário
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.RegisterEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: E-mail já cadastrado
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Erro interno
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Cadastra um usuário
+      tags:
+      - auth
+  /board/{board_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Exige manager ou admin. Deleta em cascata os cards e as labels
+        do board.
+      parameters:
+      - description: ID do board (ObjectID)
+        in: path
+        name: board_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.StringEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Sem permissão para a ação
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Deleta um board (soft delete)
+      tags:
+      - boards
+    get:
+      consumes:
+      - application/json
+      description: Retorna o board se o usuário for membro do projeto.
+      parameters:
+      - description: ID do board (ObjectID)
+        in: path
+        name: board_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BoardEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Busca um board
+      tags:
+      - boards
+    patch:
+      consumes:
+      - application/json
+      description: Exige manager ou admin. Campos internos (_id, project_id, created_at...)
+        são ignorados.
+      parameters:
+      - description: ID do board (ObjectID)
+        in: path
+        name: board_id
+        required: true
+        type: string
+      - description: Campos a alterar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateBoardRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.StringEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Sem permissão para a ação
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Edita um board
+      tags:
+      - boards
+  /board/{board_id}/columns:
+    post:
+      consumes:
+      - application/json
+      description: Exige manager ou admin. Sem id, o servidor gera um.
+      parameters:
+      - description: ID do board (ObjectID)
+        in: path
+        name: board_id
+        required: true
+        type: string
+      - description: Dados da coluna
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateColumnRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.ColumnEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Sem permissão para a ação
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Já existe uma coluna com esse id (mesmo deletada)
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Adiciona uma coluna ao board
+      tags:
+      - columns
+  /board/{board_id}/columns/{column_id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID do board (ObjectID)
+        in: path
+        name: board_id
+        required: true
+        type: string
+      - description: ID da coluna (string)
+        in: path
+        name: column_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.StringEnvelope'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Sem permissão para a ação
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: A coluna ainda tem cards ativos
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Deleta uma coluna (soft delete)
+      tags:
+      - columns
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID do board (ObjectID)
+        in: path
+        name: board_id
+        required: true
+        type: string
+      - description: ID da coluna (string)
+        in: path
+        name: column_id
+        required: true
+        type: string
+      - description: Campos a alterar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateColumnRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.StringEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Sem permissão para a ação
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Edita uma coluna
+      tags:
+      - columns
+  /board/project/{id}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID do projeto (ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 1
+        description: Página (padrão 1)
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Itens por página (padrão 20, máximo 100)
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - description: Busca no nome (2 a 100 caracteres)
+        in: query
+        name: q
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PageBoardsEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Lista os boards de um projeto
+      tags:
+      - boards
+    post:
+      consumes:
+      - application/json
+      description: Exige manager ou admin do projeto.
+      parameters:
+      - description: ID do projeto (ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Dados do board
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateBoardRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.BoardEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Sem permissão para a ação
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Cria um board
+      tags:
+      - boards
+  /card/{card_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Manager/admin apagam qualquer card; member só o que criou.
+      parameters:
+      - description: ID do card (ObjectID)
+        in: path
+        name: card_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.StringEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Sem permissão para a ação
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Deleta um card (soft delete)
+      tags:
+      - cards
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID do card (ObjectID)
+        in: path
+        name: card_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CardEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Busca um card
+      tags:
+      - cards
+    patch:
+      consumes:
+      - application/json
+      description: Só aceita title, description, assignee_ids, priority, due_date
+        e label_ids. Devolve o card atualizado.
+      parameters:
+      - description: ID do card (ObjectID)
+        in: path
+        name: card_id
+        required: true
+        type: string
+      - description: 'Campos a alterar (due_date: null remove)'
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateCardRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CardEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Edita um card
+      tags:
+      - cards
+  /card/{card_id}/complete:
+    post:
+      consumes:
+      - application/json
+      description: 'Idempotente: se já estiver concluído, devolve o card sem alterar.'
+      parameters:
+      - description: ID do card (ObjectID)
+        in: path
+        name: card_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CardEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Marca o card como concluído
+      tags:
+      - cards
+  /card/{card_id}/labels/{label_id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID do card (ObjectID)
+        in: path
+        name: card_id
+        required: true
+        type: string
+      - description: ID da label (ObjectID)
+        in: path
+        name: label_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CardEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove uma label do card
+      tags:
+      - cards
+    post:
+      consumes:
+      - application/json
+      description: Aplicar duas vezes não duplica.
+      parameters:
+      - description: ID do card (ObjectID)
+        in: path
+        name: card_id
+        required: true
+        type: string
+      - description: ID da label (ObjectID)
+        in: path
+        name: label_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CardEnvelope'
+        "400":
+          description: Label inválida, de outro board ou limite de 10 por card
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Aplica uma label ao card
+      tags:
+      - cards
+  /card/{card_id}/move:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID do card (ObjectID)
+        in: path
+        name: card_id
+        required: true
+        type: string
+      - description: Coluna de destino e vizinhos
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.MoveCardRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CardEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Move um card (coluna e posição)
+      tags:
+      - cards
+  /card/{card_id}/reopen:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID do card (ObjectID)
+        in: path
+        name: card_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CardEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Reabre um card concluído
+      tags:
+      - cards
+  /card/board/{board_id}:
+    get:
+      consumes:
+      - application/json
+      description: 'Com qualquer filtro, q ou sort a resposta é uma lista plana paginada
+        ({items, pagination}). Sem eles, data é {columns: {"<id da coluna>": {items,
+        pagination}}} com a mesma page/limit de cada coluna.'
+      parameters:
+      - description: ID do board (ObjectID)
+        in: path
+        name: board_id
+        required: true
+        type: string
+      - default: 1
+        description: Página (padrão 1)
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Itens por página (padrão 20, máximo 100)
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - description: Coluna(s), separadas por vírgula
+        in: query
+        name: column_id
+        type: string
+      - description: 'Prioridade(s): low, medium, high, urgent (vírgula)'
+        in: query
+        name: priority
+        type: string
+      - description: Ids de labels (vírgula)
+        in: query
+        name: label_ids
+        type: string
+      - description: 'all (padrão: precisa ter todas) ou any'
+        enum:
+        - all
+        - any
+        in: query
+        name: label_mode
+        type: string
+      - description: Id do responsável, me ou none
+        in: query
+        name: assignee_id
+        type: string
+      - description: Id do criador ou me
+        in: query
+        name: created_by
+        type: string
+      - description: open, completed ou all (padrão)
+        enum:
+        - open
+        - completed
+        - all
+        in: query
+        name: status
+        type: string
+      - description: Entrega até esta data (YYYY-MM-DD = fim do dia, ou RFC 3339)
+        in: query
+        name: due_before
+        type: string
+      - description: Entrega a partir desta data (YYYY-MM-DD = início do dia, ou RFC
+          3339)
+        in: query
+        name: due_after
+        type: string
+      - description: true = atrasados (data no passado e não concluídos)
+        in: query
+        name: overdue
+        type: boolean
+      - description: true/false = tem (ou não) data de entrega
+        in: query
+        name: has_due_date
+        type: boolean
+      - description: Busca por texto no título e na descrição (2 a 100 caracteres)
+        in: query
+        name: q
+        type: string
+      - description: position (padrão), created_at, updated_at, due_date, priority,
+          title
+        enum:
+        - position
+        - created_at
+        - updated_at
+        - due_date
+        - priority
+        - title
+        in: query
+        name: sort
+        type: string
+      - description: asc (padrão) ou desc
+        enum:
+        - asc
+        - desc
+        in: query
+        name: order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PageCardsEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Lista os cards de um board
+      tags:
+      - cards
+    post:
+      consumes:
+      - application/json
+      description: 'Vai para o fim da coluna (position 1000, 2000...). Prioridade
+        padrão: medium. due_date em RFC 3339 ou YYYY-MM-DD.'
+      parameters:
+      - description: ID do board (ObjectID)
+        in: path
+        name: board_id
+        required: true
+        type: string
+      - description: Dados do card
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateCardRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.CardEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Cria um card
+      tags:
+      - cards
+  /card/project/{project_id}/due:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID do projeto (ObjectID)
+        in: path
+        name: project_id
+        required: true
+        type: string
+      - description: 'Início (YYYY-MM-DD ou RFC 3339); padrão: agora'
+        in: query
+        name: from
+        type: string
+      - description: 'Fim (padrão: 7 dias depois de from); intervalo máximo de 90
+          dias'
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CardListEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Cards do projeto com entrega no intervalo (calendário)
+      tags:
+      - cards
+  /card/project/{project_id}/search:
+    get:
+      consumes:
+      - application/json
+      description: O parâmetro q é obrigatório. Aceita os mesmos filtros e ordenação;
+        cada item traz board_id e column_id.
+      parameters:
+      - description: ID do projeto (ObjectID)
+        in: path
+        name: project_id
+        required: true
+        type: string
+      - default: 1
+        description: Página (padrão 1)
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Itens por página (padrão 20, máximo 100)
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - description: Coluna(s), separadas por vírgula
+        in: query
+        name: column_id
+        type: string
+      - description: 'Prioridade(s): low, medium, high, urgent (vírgula)'
+        in: query
+        name: priority
+        type: string
+      - description: Ids de labels (vírgula)
+        in: query
+        name: label_ids
+        type: string
+      - description: 'all (padrão: precisa ter todas) ou any'
+        enum:
+        - all
+        - any
+        in: query
+        name: label_mode
+        type: string
+      - description: Id do responsável, me ou none
+        in: query
+        name: assignee_id
+        type: string
+      - description: Id do criador ou me
+        in: query
+        name: created_by
+        type: string
+      - description: open, completed ou all (padrão)
+        enum:
+        - open
+        - completed
+        - all
+        in: query
+        name: status
+        type: string
+      - description: Entrega até esta data (YYYY-MM-DD = fim do dia, ou RFC 3339)
+        in: query
+        name: due_before
+        type: string
+      - description: Entrega a partir desta data (YYYY-MM-DD = início do dia, ou RFC
+          3339)
+        in: query
+        name: due_after
+        type: string
+      - description: true = atrasados (data no passado e não concluídos)
+        in: query
+        name: overdue
+        type: boolean
+      - description: true/false = tem (ou não) data de entrega
+        in: query
+        name: has_due_date
+        type: boolean
+      - description: Busca por texto no título e na descrição (2 a 100 caracteres)
+        in: query
+        name: q
+        type: string
+      - description: position (padrão), created_at, updated_at, due_date, priority,
+          title
+        enum:
+        - position
+        - created_at
+        - updated_at
+        - due_date
+        - priority
+        - title
+        in: query
+        name: sort
+        type: string
+      - description: asc (padrão) ou desc
+        enum:
+        - asc
+        - desc
+        in: query
+        name: order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PageCardsEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Busca cards em todos os boards do projeto
+      tags:
+      - cards
+  /comment/{comment_id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID do comentário (ObjectID)
+        in: path
+        name: comment_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.StringEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Só o autor, ou manager/admin (moderação)
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Apaga um comentário (soft delete)
+      tags:
+      - comments
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID do comentário (ObjectID)
+        in: path
+        name: comment_id
+        required: true
+        type: string
+      - description: Novo texto
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateCommentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CommentEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Só o autor edita
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Edita o próprio comentário
+      tags:
+      - comments
+  /comment/card/{card_id}:
+    get:
+      consumes:
+      - application/json
+      description: Mais antigos primeiro. Cada item traz author {id, name} (nunca
+        e-mail).
+      parameters:
+      - description: ID do card (ObjectID)
+        in: path
+        name: card_id
+        required: true
+        type: string
+      - default: 1
+        description: Página (padrão 1)
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Itens por página (padrão 20, máximo 100)
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - description: Filtra por autor (ObjectID ou me)
+        in: query
+        name: author_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PageCommentsEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Lista os comentários de um card
+      tags:
+      - comments
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID do card (ObjectID)
+        in: path
+        name: card_id
+        required: true
+        type: string
+      - description: Texto (1 a 5000 caracteres)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateCommentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.CommentEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Comenta em um card
+      tags:
+      - comments
+  /health:
+    get:
+      description: Pública (sem autenticação). Faz ping no MongoDB com timeout de
+        2s.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.HealthEnvelope'
+        "503":
+          description: Banco indisponível
+          schema:
+            $ref: '#/definitions/dto.HealthErrorResponse'
+      summary: Verifica se a API e o banco estão no ar
+      tags:
+      - health
+  /label/{label_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a label de todos os cards do board.
+      parameters:
+      - description: ID da label (ObjectID)
+        in: path
+        name: label_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.StringEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Sem permissão para a ação
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Deleta uma label (soft delete)
+      tags:
+      - labels
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID da label (ObjectID)
+        in: path
+        name: label_id
+        required: true
+        type: string
+      - description: Campos a alterar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateLabelRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.LabelEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Sem permissão para a ação
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Conflito
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Edita uma label
+      tags:
+      - labels
+  /label/board/{board_id}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID do board (ObjectID)
+        in: path
+        name: board_id
+        required: true
+        type: string
+      - default: 1
+        description: Página (padrão 1)
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Itens por página (padrão 20, máximo 100)
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PageLabelsEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Lista as labels de um board
+      tags:
+      - labels
+    post:
+      consumes:
+      - application/json
+      description: Exige manager ou admin. Nome único por board (sem diferenciar maiúsculas).
+        Máximo de 50 por board.
+      parameters:
+      - description: ID do board (ObjectID)
+        in: path
+        name: board_id
+        required: true
+        type: string
+      - description: 'Nome (1 a 30) e cor #RRGGBB (opcional)'
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateLabelRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.LabelEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Sem permissão para a ação
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Label name already exists on this board
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Cria uma label no board
+      tags:
+      - labels
+  /project/:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - default: 1
+        description: Página (padrão 1)
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Itens por página (padrão 20, máximo 100)
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - description: Busca no nome e na descrição (2 a 100 caracteres)
+        in: query
+        name: q
+        type: string
+      - description: 'Status (vírgula), ex.: active'
+        in: query
+        name: status
+        type: string
+      - description: Filtra por workspace (ObjectID)
+        in: query
+        name: workspace_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PageProjectsEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Lista os projetos em que o usuário é membro
+      tags:
+      - projects
+    post:
+      consumes:
+      - application/json
+      description: Quem cria vira admin do projeto.
+      parameters:
+      - description: Dados do projeto
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.ProjectEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Workspace não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Cria um projeto
+      tags:
+      - projects
+  /project/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Exige admin. Deleta em cascata os membros, boards, cards e labels.
+      parameters:
+      - description: ID do projeto (ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.StringEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Sem permissão para a ação
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Deleta um projeto (soft delete)
+      tags:
+      - projects
+    patch:
+      consumes:
+      - application/json
+      description: Exige manager ou admin do projeto.
+      parameters:
+      - description: ID do projeto (ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Campos a alterar (name, description, status)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.StringEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Sem permissão para a ação
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Edita um projeto
+      tags:
+      - projects
+  /project/member/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID do projeto (ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Usuário a remover
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RemoveMemberRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Sem permissão para a ação
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: O projeto precisa de pelo menos um admin
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove um membro do projeto
+      tags:
+      - project-members
+    get:
+      consumes:
+      - application/json
+      description: Qualquer membro pode ver.
+      parameters:
+      - description: ID do projeto (ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 1
+        description: Página (padrão 1)
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Itens por página (padrão 20, máximo 100)
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - description: 'Filtra por role(s): member, manager, admin (vírgula)'
+        in: query
+        name: role
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PageProjectMembersEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Lista os membros de um projeto
+      tags:
+      - project-members
+    patch:
+      consumes:
+      - application/json
+      description: Só admin promove, rebaixa ou mexe em admin.
+      parameters:
+      - description: ID do projeto (ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Usuário e nova role
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.MemberRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Sem permissão para a ação
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: O projeto precisa de pelo menos um admin
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Muda a role de um membro do projeto
+      tags:
+      - project-members
+    post:
+      consumes:
+      - application/json
+      description: Exige manager ou admin; só admin adiciona admin. Reativa quem tinha
+        saído (200).
+      parameters:
+      - description: ID do projeto (ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Usuário e role
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.MemberRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.ProjectMemberEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Sem permissão para a ação
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Já é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Adiciona um membro ao projeto
+      tags:
+      - project-members
+  /users/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID do usuário (ObjectID); precisa ser o do usuário logado
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Só o próprio usuário pode se deletar
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Deleta o próprio usuário (soft delete)
+      tags:
+      - users
+    get:
+      consumes:
+      - application/json
+      description: Nunca devolve a senha.
+      parameters:
+      - description: ID do usuário (ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Usuário não encontrado
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Busca um usuário
+      tags:
+      - users
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID do usuário (ObjectID); precisa ser o do usuário logado
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Campos a alterar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UpdateResultEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Só o próprio usuário pode se editar
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: E-mail já em uso
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Edita o próprio usuário
+      tags:
+      - users
+  /workspace/:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - default: 1
+        description: Página (padrão 1)
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Itens por página (padrão 20, máximo 100)
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PageWorkspacesEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Lista os workspaces criados pelo usuário
+      tags:
+      - workspaces
+    post:
+      consumes:
+      - application/json
+      description: Quem cria vira admin do workspace.
+      parameters:
+      - description: Dados do workspace
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateWorkspaceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.WorkspaceEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Cria um workspace
+      tags:
+      - workspaces
+  /workspace/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Exige admin. Deleta em cascata os projetos, boards, cards, labels
+        e membros.
+      parameters:
+      - description: ID do workspace (ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.StringEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Sem permissão para a ação
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Deleta um workspace (soft delete)
+      tags:
+      - workspaces
+    patch:
+      consumes:
+      - application/json
+      description: Exige manager ou admin do workspace.
+      parameters:
+      - description: ID do workspace (ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Campos a alterar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateWorkspaceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Sem permissão para a ação
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Edita um workspace
+      tags:
+      - workspaces
+  /workspace/member:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - default: 1
+        description: Página (padrão 1)
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Itens por página (padrão 20, máximo 100)
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PageWorkspacesEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Lista os workspaces em que o usuário é membro
+      tags:
+      - workspace-members
+  /workspace/member/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID do workspace (ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Usuário a remover
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RemoveMemberRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Sem permissão para a ação
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: O workspace precisa de pelo menos um admin
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove um membro do workspace
+      tags:
+      - workspace-members
+    get:
+      consumes:
+      - application/json
+      description: Qualquer membro pode ver.
+      parameters:
+      - description: ID do workspace (ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 1
+        description: Página (padrão 1)
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: Itens por página (padrão 20, máximo 100)
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - description: 'Filtra por role(s): member, manager, admin (vírgula)'
+        in: query
+        name: role
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PageWorkspaceMembersEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Lista os membros de um workspace
+      tags:
+      - workspace-members
+    patch:
+      consumes:
+      - application/json
+      description: Só admin promove, rebaixa ou mexe em admin.
+      parameters:
+      - description: ID do workspace (ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Usuário e nova role
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.MemberRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Sem permissão para a ação
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: O workspace precisa de pelo menos um admin
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Muda a role de um membro do workspace
+      tags:
+      - workspace-members
+    post:
+      consumes:
+      - application/json
+      description: Exige manager ou admin; só admin adiciona admin.
+      parameters:
+      - description: ID do workspace (ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Usuário e role
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.MemberRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.WorkspaceMemberEnvelope'
+        "400":
+          description: Parâmetro ou corpo inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Sem token ou token inválido
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Sem permissão para a ação
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Não existe ou o usuário não é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Já é membro
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Adiciona um membro ao workspace
+      tags:
+      - workspace-members
+securityDefinitions:
+  BearerAuth:
+    description: Digite "Bearer " seguido do token JWT.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
+tags:
+- description: Cadastro e login
+  name: auth
+- description: Usuários
+  name: users
+- description: Workspaces
+  name: workspaces
+- description: Membros de workspace
+  name: workspace-members
+- description: Projetos
+  name: projects
+- description: Membros de projeto
+  name: project-members
+- description: Boards
+  name: boards
+- description: Colunas de um board
+  name: columns
+- description: Cards (mover, concluir, labels, filtros e busca)
+  name: cards
+- description: Labels de um board
+  name: labels
+- description: Comentários de um card
+  name: comments
+- description: Anexos de um card (arquivos e links)
+  name: attachments
+- description: Saúde da API
+  name: health

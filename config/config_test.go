@@ -124,3 +124,25 @@ func TestLoadStorageDefaultsAndValidation(t *testing.T) {
 		t.Errorf("driver inválido deveria falhar: %v", err)
 	}
 }
+
+func TestLoadSwaggerEnabled(t *testing.T) {
+	setValidEnv(t)
+	clearOptionalEnv(t)
+
+	t.Setenv("SWAGGER_ENABLED", "")
+	cfg, err := Load()
+	if err != nil || !cfg.SwaggerEnabled {
+		t.Fatalf("o padrão é true: %v %+v", err, cfg)
+	}
+
+	t.Setenv("SWAGGER_ENABLED", "false")
+	cfg, err = Load()
+	if err != nil || cfg.SwaggerEnabled {
+		t.Fatalf("false deveria desligar: %v %+v", err, cfg)
+	}
+
+	t.Setenv("SWAGGER_ENABLED", "talvez")
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "SWAGGER_ENABLED") {
+		t.Fatalf("valor inválido deveria falhar: %v", err)
+	}
+}
