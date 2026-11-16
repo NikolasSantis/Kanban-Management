@@ -3,7 +3,7 @@ package database
 import (
 	"context"
 	"kanban-management/config"
-	"log"
+	"log/slog"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -26,7 +26,7 @@ func ConnectDB(cfg *config.Config) error {
 		return err
 	}
 
-	log.Println("Conectado ao MongoDB!")
+	slog.Info("Conectado ao MongoDB", "database", cfg.DatabaseName)
 
 	DB = client.Database(cfg.DatabaseName)
 

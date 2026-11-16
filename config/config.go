@@ -44,8 +44,14 @@ func Load() (*Config, error) {
 		MongoURI:     os.Getenv("MONGODB_URI"),
 		DatabaseName: os.Getenv("DATABASE_NAME"),
 		JWTSecret:    os.Getenv("JWT_SECRET"),
-		LogLevel:     getEnv("LOG_LEVEL", "info"),
 	}
+
+	// Em test o nível padrão é error, para não poluir a saída dos testes.
+	defaultLogLevel := "info"
+	if cfg.IsTest() {
+		defaultLogLevel = "error"
+	}
+	cfg.LogLevel = getEnv("LOG_LEVEL", defaultLogLevel)
 
 	cfg.TestDatabaseName = getEnv("TEST_DATABASE_NAME", cfg.DatabaseName+"_test")
 

@@ -1,5 +1,7 @@
 package events
 
+import "log/slog"
+
 type Handler func(Event) error
 
 type Dispatcher struct {
@@ -24,6 +26,8 @@ func (d *Dispatcher) Dispatch(event Event) error {
 
 	for _, handler := range handlers {
 		if err := handler(event); err != nil {
+			slog.Warn("event handler failed", "event", event.Name(), "error", err)
+
 			return err
 		}
 	}

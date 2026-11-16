@@ -84,3 +84,17 @@ func TestLoadShortSecret(t *testing.T) {
 		t.Errorf("esperava erro de JWT_SECRET, veio %v", err)
 	}
 }
+
+func TestLoadTestEnvDefaultsToErrorLogLevel(t *testing.T) {
+	setValidEnv(t)
+	clearOptionalEnv(t)
+	t.Setenv("APP_ENV", "test")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.LogLevel != "error" {
+		t.Errorf("esperava error em APP_ENV=test, veio %q", cfg.LogLevel)
+	}
+}
