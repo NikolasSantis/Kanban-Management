@@ -323,3 +323,29 @@ func TestDeleteCard(t *testing.T) {
 		assert.NotNil(t, doc["deleted_at"], "o documento deve ter deleted_at")
 	})
 }
+
+func TestDeleteBoard_SoftDeletesItsCards(t *testing.T) {
+	s := newCardScenario(t)
+	cardID := testutil.CreateCard(t, s.app, s.admin.Token, s.boardID, "todo", "um")
+	testutil.CreateCard(t, s.app, s.admin.Token, s.boardID, "doing", "dois")
+
+	status, _ := s.do(t, "DELETE", "/board/"+s.boardID, s.admin.Token, nil)
+	require.Equal(t, 200, status)
+
+	status, _ = s.do(t, "GET", s.cardsPath(), s.admin.Token, nil)
+	assert.Equal(t, 404, status, "o board deletado não lista cards")
+
+	status, _ = s.do(t, "GET", "/card/"+cardID, s.admin.Token, nil)
+	assert.Equal(t, 404, status)
+
+	boardOID, _ := bson.ObjectIDFromHex(s.boardID)
+	total, err := database.GetCollection("cards").CountDocuments(context.Background(), bson.M{"board_id": boardOID})
+	require.NoError(t, err)
+	deleted, err := database.GetCollection("cards").CountDocuments(context.Background(), bson.M{
+		"board_id": boardOID, "deleted_at": bson.M{"$exists": true, "$ne": nil},
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, int64(2), total)
+	assert.Equal(t, total, deleted, "todos os cards do board devem ter deleted_at")
+}

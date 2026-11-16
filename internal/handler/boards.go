@@ -1,6 +1,7 @@
 package handler
 
 import (
+	boardEvent "kanban-management/internal/events/board"
 	"log/slog"
 	"kanban-management/internal/middleware"
 	"context"
@@ -365,6 +366,17 @@ func DeleteBoard() fiber.Handler {
 
 		if result.ModifiedCount == 0 {
 			return http.ServerError(c, nil, "No board modified")
+		}
+
+		err = services.Dispatcher.Dispatch(
+			boardEvent.BoardDeletedEvent{
+				BoardID: boardID,
+				Ctx:     ctx,
+			},
+		)
+
+		if err != nil {
+			return http.ServerError(c, err, "Fail to dispatch board deleted event")
 		}
 
 		slog.Info("board.deleted", "board_id", boardID.Hex(), "user_id", userID.Hex())
