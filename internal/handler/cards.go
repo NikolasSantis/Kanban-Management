@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"kanban-management/internal/filters"
 	"kanban-management/internal/pagination"
 	"kanban-management/internal/search"
 	"log/slog"
@@ -92,48 +93,28 @@ func GetCards() fiber.Handler {
 
 		now := time.Now()
 
-		// Com ?q= a resposta é uma lista plana (não agrupada por coluna), do card
-		// mais recentemente alterado para o mais antigo. ?column_id= também vale aqui.
-		terms, searching, err := searchTerms(c)
+		cardQuery, err := filters.ParseCardQuery(c, userID, now)
 
 		if err != nil {
-			return invalidCardResponse(c, search.InvalidQueryMessage)
+			return respondQueryError(c, err)
 		}
 
-		if searching {
-			filter := bson.M{
-				"board_id": boardID,
-				"$or":      services.NotDeleted(),
-				"$and":     search.RegexFilter("search_text", terms)["$and"],
-			}
-
-			if columnID := c.Query("column_id"); columnID != "" {
+		// Com qualquer filtro, busca (?q=) ou ordenação explícita a resposta é uma
+		// lista plana paginada (não agrupada por coluna).
+		if cardQuery.HasFilters() {
+			for _, columnID := range cardQuery.ColumnIDs {
 				if !services.ColumnExists(board, columnID) {
 					return invalidCardResponse(c, "Column not found in this board")
 				}
-
-				filter["column_id"] = columnID
 			}
 
-			return searchCardsResponse(c, ctx, filter, params, now)
+			return listFilteredCards(c, ctx, bson.M{
+				"board_id": boardID,
+				"$or":      services.NotDeleted(),
+			}, cardQuery, params)
 		}
 
-		// Com ?column_id= devolve a página dessa coluna.
-		if columnID := c.Query("column_id"); columnID != "" {
-			if !services.ColumnExists(board, columnID) {
-				return invalidCardResponse(c, "Column not found in this board")
-			}
-
-			page, err := cardsPage(ctx, boardID, columnID, params, now)
-
-			if err != nil {
-				return http.ServerError(c, err, "Fail to get cards")
-			}
-
-			return http.Success(c, 200, page)
-		}
-
-		// Sem column_id: a página (a mesma page/limit) de CADA coluna ativa do board.
+		// Sem filtros: a página (a mesma page/limit) de CADA coluna ativa do board.
 		columns := map[string]pagination.Page[models.CardResponse]{}
 
 		for _, column := range board.Columns {
@@ -1002,20 +983,48 @@ func contains(ids []bson.ObjectID, id bson.ObjectID) bool {
 	return false
 }
 
-// searchCardsResponse pagina o resultado de uma busca de cards (updated_at desc).
-func searchCardsResponse(c *fiber.Ctx, ctx context.Context, filter bson.M, params pagination.Params, now time.Time) error {
-	cards, total, err := pagination.Fetch[models.Card](ctx, database.GetCollection("cards"), filter,
-		bson.D{{Key: "updated_at", Value: -1}, {Key: "_id", Value: -1}}, params)
-
-	if err != nil {
-		return http.ServerError(c, err, "Fail to search cards")
+// respondQueryError responde 400 para erro de validação da query string.
+func respondQueryError(c *fiber.Ctx, err error) error {
+	if queryErr, ok := filters.AsQueryError(err); ok {
+		return invalidCardResponse(c, queryErr.Message)
 	}
 
-	return http.Success(c, 200, pagination.NewPage(models.ToCardResponses(cards, now), params, total))
+	return http.ServerError(c, err, "Fail to read query")
 }
 
-// SearchProjectCards busca cards em todos os boards do projeto (?q= obrigatório).
-// Cada item traz board_id e column_id.
+// listFilteredCards aplica os filtros e a ordenação do CardQuery sobre o escopo
+// (board_id/project_id + soft delete) e devolve a página (lista plana).
+func listFilteredCards(c *fiber.Ctx, ctx context.Context, scope bson.M, cardQuery filters.CardQuery, params pagination.Params) error {
+	filter := filters.BuildCardFilter(cardQuery)
+
+	for key, value := range scope {
+		filter[key] = value
+	}
+
+	collection := database.GetCollection("cards")
+	sort := filters.BuildCardSort(cardQuery)
+
+	var (
+		cards []models.Card
+		total int64
+		err   error
+	)
+
+	if cardQuery.NeedsAggregation() {
+		cards, total, err = pagination.FetchPipeline[models.Card](ctx, collection, filter, filters.DueDateAddFields, sort, params)
+	} else {
+		cards, total, err = pagination.Fetch[models.Card](ctx, collection, filter, sort, params)
+	}
+
+	if err != nil {
+		return http.ServerError(c, err, "Fail to get cards")
+	}
+
+	return http.Success(c, 200, pagination.NewPage(models.ToCardResponses(cards, cardQuery.Now), params, total))
+}
+
+// SearchProjectCards busca cards em todos os boards do projeto (?q= obrigatório;
+// aceita os mesmos filtros e ordenação). Cada item traz board_id e column_id.
 func SearchProjectCards() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		projectID, err := bson.ObjectIDFromHex(c.Params("project_id"))
@@ -1044,16 +1053,19 @@ func SearchProjectCards() fiber.Handler {
 			return invalidCardResponse(c, pagination.InvalidParamsMessage)
 		}
 
-		terms, err := search.ParseQuery(c.Query("q"))
+		cardQuery, err := filters.ParseCardQuery(c, userID, time.Now())
 
 		if err != nil {
+			return respondQueryError(c, err)
+		}
+
+		if len(cardQuery.Search) == 0 {
 			return invalidCardResponse(c, search.InvalidQueryMessage)
 		}
 
-		return searchCardsResponse(c, ctx, bson.M{
+		return listFilteredCards(c, ctx, bson.M{
 			"project_id": projectID,
 			"$or":        services.NotDeleted(),
-			"$and":       search.RegexFilter("search_text", terms)["$and"],
-		}, params, time.Now())
+		}, cardQuery, params)
 	}
 }

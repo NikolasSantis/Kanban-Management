@@ -124,6 +124,18 @@ func CreateIndexes() error {
 				{Key: "label_ids", Value: 1},
 			},
 		},
+		{
+			Keys: bson.D{
+				{Key: "board_id", Value: 1},
+				{Key: "assignee_ids", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "board_id", Value: 1},
+				{Key: "due_date", Value: 1},
+			},
+		},
 	})
 
 	return err
