@@ -23,5 +23,7 @@ func RegisterCardRoutes(app *fiber.App) {
 	card.Patch("/:card_id/move", handler.MoveCard())
 	card.Post("/:card_id/complete", handler.CompleteCard())
 	card.Post("/:card_id/reopen", handler.ReopenCard())
+	card.Post("/:card_id/labels/:label_id", handler.ApplyLabel())
+	card.Delete("/:card_id/labels/:label_id", handler.RemoveLabel())
 	card.Delete("/:card_id", handler.DeleteCard())
 }

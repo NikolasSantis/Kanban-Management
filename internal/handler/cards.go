@@ -26,6 +26,7 @@ type createCardRequest struct {
 	AssigneeIDs []bson.ObjectID `json:"assignee_ids"`
 	Priority    *string         `json:"priority"`
 	DueDate     *string         `json:"due_date"`
+	LabelIDs    []bson.ObjectID `json:"label_ids"`
 }
 
 // Só estes campos podem ser alterados via PATCH /card/:card_id.
@@ -35,7 +36,8 @@ type patchCardRequest struct {
 	AssigneeIDs *[]bson.ObjectID `json:"assignee_ids"`
 	Priority    *string          `json:"priority"`
 	// DueDate fica como RawMessage para distinguir ausente (ignora) de null (remove).
-	DueDate json.RawMessage `json:"due_date"`
+	DueDate  json.RawMessage  `json:"due_date"`
+	LabelIDs *[]bson.ObjectID `json:"label_ids"`
 }
 
 type moveCardRequest struct {
@@ -43,6 +45,8 @@ type moveCardRequest struct {
 	BeforeCardID *bson.ObjectID `json:"before_card_id"`
 	AfterCardID  *bson.ObjectID `json:"after_card_id"`
 }
+
+const invalidLabelsMessage = "Labels must be distinct, active labels of this board (max 10)"
 
 func invalidCardResponse(c *fiber.Ctx, message string) error {
 	return http.Error(c, 400, fiber.Map{"error": message}, message)
@@ -163,6 +167,20 @@ func CreateCard() fiber.Handler {
 			return http.ServerError(c, err, "Fail to validate assignees")
 		}
 
+		if err := services.ValidateLabelIDs(ctx, boardID, request.LabelIDs); err != nil {
+			if errors.Is(err, services.ErrInvalidLabels) {
+				return invalidCardResponse(c, invalidLabelsMessage)
+			}
+
+			return http.ServerError(c, err, "Fail to validate labels")
+		}
+
+		labelIDs := request.LabelIDs
+
+		if labelIDs == nil {
+			labelIDs = []bson.ObjectID{}
+		}
+
 		priority := models.PriorityDefault
 
 		if request.Priority != nil {
@@ -209,6 +227,7 @@ func CreateCard() fiber.Handler {
 			Priority:      priority,
 			PriorityLevel: priority.Level(),
 			AssigneeIDs:   assignees,
+			LabelIDs:      labelIDs,
 			DueDate:       dueDate,
 			CreatedBy:     &userID,
 			CreatedAt:     now,
@@ -333,6 +352,24 @@ func PatchCard() fiber.Handler {
 			}
 
 			updates["assignee_ids"] = assignees
+		}
+
+		if request.LabelIDs != nil {
+			labelIDs := *request.LabelIDs
+
+			if err := services.ValidateLabelIDs(ctx, *card.BoardID, labelIDs); err != nil {
+				if errors.Is(err, services.ErrInvalidLabels) {
+					return invalidCardResponse(c, invalidLabelsMessage)
+				}
+
+				return http.ServerError(c, err, "Fail to validate labels")
+			}
+
+			if labelIDs == nil {
+				labelIDs = []bson.ObjectID{}
+			}
+
+			updates["label_ids"] = labelIDs
 		}
 
 		if request.Priority != nil {
@@ -764,4 +801,107 @@ func GetCardsDue() fiber.Handler {
 
 		return http.Success(c, 200, models.ToCardResponses(cards, time.Now()))
 	}
+}
+
+// ApplyLabel aplica uma label ao card ($addToSet: aplicar duas vezes não duplica).
+// A label precisa ser ativa e do mesmo board do card.
+// Obs.: mover card entre boards não existe (mover é só entre colunas do mesmo
+// board). Se um dia existir, as labels do card precisam ser limpas.
+func ApplyLabel() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		ctx := context.Background()
+
+		card, userID, _, handled, err := loadCardForUser(c, ctx, services.ActionCardUpdate)
+
+		if handled {
+			return err
+		}
+
+		labelID, err := bson.ObjectIDFromHex(c.Params("label_id"))
+
+		if err != nil {
+			return invalidCardResponse(c, "Invalid label id")
+		}
+
+		ids := append(append([]bson.ObjectID{}, card.LabelIDs...), labelID)
+
+		if contains(card.LabelIDs, labelID) {
+			ids = card.LabelIDs
+		}
+
+		if err := services.ValidateLabelIDs(ctx, *card.BoardID, ids); err != nil {
+			if errors.Is(err, services.ErrInvalidLabels) {
+				return invalidCardResponse(c, invalidLabelsMessage)
+			}
+
+			return http.ServerError(c, err, "Fail to validate labels")
+		}
+
+		_, err = database.GetCollection("cards").UpdateByID(ctx, *card.ID, bson.M{
+			"$addToSet": bson.M{"label_ids": labelID},
+			"$set":      bson.M{"updated_at": time.Now()},
+		})
+
+		if err != nil {
+			return http.ServerError(c, err, "Error to apply label")
+		}
+
+		slog.Info("card.label_applied", "card_id", card.ID.Hex(), "label_id", labelID.Hex(), "user_id", userID.Hex())
+
+		updated, err := services.FindActiveCard(ctx, *card.ID)
+
+		if err != nil {
+			return http.ServerError(c, err, "Error to load card")
+		}
+
+		return http.Success(c, 200, models.ToCardResponse(*updated, time.Now()))
+	}
+}
+
+// RemoveLabel tira uma label do card ($pull). Se ela não estava no card, é 200 sem alterar.
+func RemoveLabel() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		ctx := context.Background()
+
+		card, userID, _, handled, err := loadCardForUser(c, ctx, services.ActionCardUpdate)
+
+		if handled {
+			return err
+		}
+
+		labelID, err := bson.ObjectIDFromHex(c.Params("label_id"))
+
+		if err != nil {
+			return invalidCardResponse(c, "Invalid label id")
+		}
+
+		_, err = database.GetCollection("cards").UpdateByID(ctx, *card.ID, bson.M{
+			"$pull": bson.M{"label_ids": labelID},
+			"$set":  bson.M{"updated_at": time.Now()},
+		})
+
+		if err != nil {
+			return http.ServerError(c, err, "Error to remove label")
+		}
+
+		slog.Info("card.label_removed", "card_id", card.ID.Hex(), "label_id", labelID.Hex(), "user_id", userID.Hex())
+
+		updated, err := services.FindActiveCard(ctx, *card.ID)
+
+		if err != nil {
+			return http.ServerError(c, err, "Error to load card")
+		}
+
+		return http.Success(c, 200, models.ToCardResponse(*updated, time.Now()))
+	}
+}
+
+func contains(ids []bson.ObjectID, id bson.ObjectID) bool {
+	for _, candidate := range ids {
+		if candidate == id {
+			return true
+		}
+	}
+
+	return false
 }

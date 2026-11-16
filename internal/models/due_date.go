@@ -4,6 +4,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 const (
@@ -65,6 +67,15 @@ type CardResponse struct {
 
 // ToCardResponse calcula is_overdue = tem data, não está concluído e a data já passou.
 func ToCardResponse(card Card, now time.Time) CardResponse {
+	// Cards antigos podem não ter essas listas: a API sempre devolve [] (nunca null).
+	if card.LabelIDs == nil {
+		card.LabelIDs = []bson.ObjectID{}
+	}
+
+	if card.AssigneeIDs == nil {
+		card.AssigneeIDs = []bson.ObjectID{}
+	}
+
 	return CardResponse{
 		Card:      card,
 		IsOverdue: card.DueDate != nil && card.CompletedAt == nil && card.DueDate.Before(now),
