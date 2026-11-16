@@ -1,0 +1,25 @@
+# Controle de versão e planejamento local
+.git
+.gitignore
+todo/
+
+# Segredos: nenhum .env entra na imagem (só os exemplos, que não têm segredo)
+.env*
+!.env.example
+!.env.docker.example
+test/.env
+
+# Anexos enviados e binários
+uploads/
+*.exe
+*.test
+*.out
+
+# Documentação e arquivos de ambiente de desenvolvimento
+*.md
+.idea/
+.vscode/
+docker-compose*.yml
+Dockerfile
+.dockerignore
+Makefile

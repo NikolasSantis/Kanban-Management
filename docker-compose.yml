@@ -1,0 +1,59 @@
+# Sobe a API e um MongoDB local:
+#   cp .env.docker.example .env.docker   (e troque o JWT_SECRET)
+#   docker compose up --build -d
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      # Exposta só na máquina local (útil para o mongosh e para os testes de integração).
+      - "127.0.0.1:27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  api:
+    build: .
+    restart: unless-stopped
+    env_file: .env.docker
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads:/app/uploads
+    # O mesmo healthcheck do Dockerfile, explícito aqui para ficar visível.
+    healthcheck:
+      test: ["CMD", "/app/api", "-healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    # O docker stop manda SIGTERM; a API termina as requests em andamento (até 10s).
+    stop_grace_period: 15s
+
+  # Opcional: ver os dados no navegador (http://localhost:8081).
+  #   docker compose --profile tools up -d
+  mongo-express:
+    image: mongo-express:1
+    profiles: ["tools"]
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongo:27017/
+      # Sem login porque só escuta em 127.0.0.1; não exponha esta porta.
+      ME_CONFIG_BASICAUTH: "false"
+    ports:
+      - "127.0.0.1:8081:8081"
+
+volumes:
+  mongo_data:
+  uploads:
