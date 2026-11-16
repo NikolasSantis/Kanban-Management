@@ -17,5 +17,6 @@ func RegisterCardRoutes(app *fiber.App) {
 	// Card específico
 	card.Get("/:card_id", handler.GetCard())
 	card.Patch("/:card_id", handler.PatchCard())
+	card.Patch("/:card_id/move", handler.MoveCard())
 	card.Delete("/:card_id", handler.DeleteCard())
 }
