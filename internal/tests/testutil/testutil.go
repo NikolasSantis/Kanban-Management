@@ -28,6 +28,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // Envelope é o envelope padrão de resposta da API.
@@ -143,7 +144,8 @@ func initialize() {
 	testApp = app.New(cfg)
 }
 
-// DropTestDatabase apaga o banco de teste. Recusa qualquer outro banco.
+// DropTestDatabase apaga todas as coleções do banco de teste. Recusa qualquer
+// outro banco (a trava roda antes de qualquer Drop).
 func DropTestDatabase() error {
 	if database.DB == nil {
 		return nil
@@ -153,7 +155,22 @@ func DropTestDatabase() error {
 		return err
 	}
 
-	return database.DB.Drop(context.Background())
+	// O usuário do Atlas não tem permissão de dropDatabase, então apaga cada
+	// coleção do banco de teste (o efeito é o mesmo).
+	ctx := context.Background()
+
+	names, err := database.DB.ListCollectionNames(ctx, bson.M{})
+	if err != nil {
+		return err
+	}
+
+	for _, name := range names {
+		if err := database.DB.Collection(name).Drop(ctx); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Setup devolve o app de teste ou pula o teste se não houver banco configurado.
