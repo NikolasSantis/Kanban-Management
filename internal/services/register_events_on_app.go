@@ -2,9 +2,10 @@ package services
 
 import (
 	"kanban-management/internal/events"
+	cardListeners "kanban-management/internal/listeners/cards"
+	labelListeners "kanban-management/internal/listeners/labels"
 	project "kanban-management/internal/listeners/project_members"
 	"kanban-management/internal/listeners/workspace"
-	cardListeners "kanban-management/internal/listeners/cards"
 )
 
 var Dispatcher *events.Dispatcher
@@ -18,6 +19,8 @@ func RegisterEvents() {
 		workspace.HandleUserDeleted,
 	)
 
+	// workspace.deleted → membros do workspace e, em cascata, os projetos
+	// (cada um dispara project.deleted).
 	Dispatcher.Register(
 		"workspace.deleted",
 		workspace.HandleWorkspaceDeleted,
@@ -28,13 +31,27 @@ func RegisterEvents() {
 		project.HandleProjectCreated,
 	)
 
+	// project.deleted → membros do projeto e, em cascata, os boards
+	// (cada um dispara board.deleted).
 	Dispatcher.Register(
 		"project.deleted",
 		project.HandleProjectDeleted,
 	)
 
+	// board.deleted → cards e labels do board.
 	Dispatcher.Register(
 		"board.deleted",
 		cardListeners.HandleBoardDeleted,
+	)
+
+	Dispatcher.Register(
+		"board.deleted",
+		labelListeners.HandleBoardDeleted,
+	)
+
+	// label.deleted → remove a label dos cards.
+	Dispatcher.Register(
+		"label.deleted",
+		cardListeners.HandleLabelDeleted,
 	)
 }
