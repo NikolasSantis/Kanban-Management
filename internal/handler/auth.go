@@ -1,14 +1,15 @@
 package handler
 
 import (
-	"log/slog"
-	"kanban-management/internal/middleware"
 	"context"
 	"kanban-management/internal/auth"
 	"kanban-management/internal/database"
+	_ "kanban-management/internal/dto" // só para o swag resolver os tipos das anotações
 	"kanban-management/internal/http"
+	"kanban-management/internal/middleware"
 	"kanban-management/internal/models"
 	"kanban-management/internal/services"
+	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -21,6 +22,16 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
+// @Summary		Faz login
+// @Description	Devolve o token JWT; use no botão Authorize como: Bearer <token>.
+// @Tags			auth
+// @Accept			json
+// @Produce		json
+// @Param			body	body		dto.LoginRequest	true	"Credenciais"
+// @Success		200		{object}	dto.TokenEnvelope
+// @Failure		400		{object}	dto.ErrorResponse	"Corpo inválido"
+// @Failure		401		{object}	dto.ErrorResponse	"E-mail ou senha incorretos (ou conta deletada)"
+// @Router			/auth/login [post]
 func Login() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var login LoginRequest
@@ -73,6 +84,16 @@ func Login() fiber.Handler {
 	}
 }
 
+// @Summary	Cadastra um usuário
+// @Tags		auth
+// @Accept		json
+// @Produce	json
+// @Param		body	body		dto.RegisterRequest	true	"Dados do usuário"
+// @Success	200		{object}	dto.RegisterEnvelope
+// @Failure	400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure	409		{object}	dto.ErrorResponse	"E-mail já cadastrado"
+// @Failure	500		{object}	dto.ErrorResponse	"Erro interno"
+// @Router		/auth/register [post]
 func RegisterNewUser() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var user models.User
@@ -125,6 +146,15 @@ func RegisterNewUser() fiber.Handler {
 	}
 }
 
+// @Summary	Dados do usuário logado
+// @Tags		auth
+// @Accept		json
+// @Produce	json
+// @Success	200	{object}	dto.UserEnvelope
+// @Failure	401	{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure	404	{object}	dto.ErrorResponse	"Usuário não encontrado"
+// @Security	BearerAuth
+// @Router		/auth/me [get]
 func Me() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		objectID, err := middleware.CurrentUserID(c)

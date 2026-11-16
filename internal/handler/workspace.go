@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"kanban-management/internal/database"
+	_ "kanban-management/internal/dto" // só para o swag resolver os tipos das anotações
 	"kanban-management/internal/events/workspace"
 	"kanban-management/internal/http"
 	"kanban-management/internal/middleware"
@@ -23,6 +24,17 @@ var workspacePatchableFields = map[string]bool{
 	"description": true,
 }
 
+// @Summary	Lista os workspaces criados pelo usuário
+// @Tags		workspaces
+// @Accept		json
+// @Produce	json
+// @Param		page	query		int	false	"Página (padrão 1)"							default(1)	minimum(1)
+// @Param		limit	query		int	false	"Itens por página (padrão 20, máximo 100)"	default(20)	minimum(1)	maximum(100)
+// @Success	200		{object}	dto.PageWorkspacesEnvelope
+// @Failure	400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure	401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Security	BearerAuth
+// @Router		/workspace/ [get]
 func GetWorkspaces() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		userID, err := middleware.CurrentUserID(c)
@@ -53,6 +65,17 @@ func GetWorkspaces() fiber.Handler {
 	}
 }
 
+// @Summary		Cria um workspace
+// @Description	Quem cria vira admin do workspace.
+// @Tags			workspaces
+// @Accept			json
+// @Produce		json
+// @Param			body	body		dto.CreateWorkspaceRequest	true	"Dados do workspace"
+// @Success		200		{object}	dto.WorkspaceEnvelope
+// @Failure		400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Security		BearerAuth
+// @Router			/workspace/ [post]
 func CreateWorkspace() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var workspace models.Workspace
@@ -107,6 +130,20 @@ func CreateWorkspace() fiber.Handler {
 	}
 }
 
+// @Summary		Edita um workspace
+// @Description	Exige manager ou admin do workspace.
+// @Tags			workspaces
+// @Accept			json
+// @Produce		json
+// @Param			id		path		string						true	"ID do workspace (ObjectID)"
+// @Param			body	body		dto.UpdateWorkspaceRequest	true	"Campos a alterar"
+// @Success		200		{object}	dto.MessageEnvelope
+// @Failure		400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		403		{object}	dto.ErrorResponse	"Sem permissão para a ação"
+// @Failure		404		{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security		BearerAuth
+// @Router			/workspace/{id} [patch]
 func PatchWorkspace() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		workspaceIDHex := c.Params("id")
@@ -181,6 +218,19 @@ func PatchWorkspace() fiber.Handler {
 	}
 }
 
+// @Summary		Deleta um workspace (soft delete)
+// @Description	Exige admin. Deleta em cascata os projetos, boards, cards, labels e membros.
+// @Tags			workspaces
+// @Accept			json
+// @Produce		json
+// @Param			id	path		string	true	"ID do workspace (ObjectID)"
+// @Success		200	{object}	dto.StringEnvelope
+// @Failure		400	{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401	{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		403	{object}	dto.ErrorResponse	"Sem permissão para a ação"
+// @Failure		404	{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security		BearerAuth
+// @Router			/workspace/{id} [delete]
 func DeleteWorkspace() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		workspaceIDHex := c.Params("id")

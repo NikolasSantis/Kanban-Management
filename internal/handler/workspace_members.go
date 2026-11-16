@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"kanban-management/internal/database"
+	_ "kanban-management/internal/dto" // só para o swag resolver os tipos das anotações
 	"kanban-management/internal/filters"
 	"kanban-management/internal/http"
 	"kanban-management/internal/middleware"
@@ -22,6 +23,17 @@ type SubjectMemberRequest struct {
 	Role   string `json:"role"`
 }
 
+// @Summary	Lista os workspaces em que o usuário é membro
+// @Tags		workspace-members
+// @Accept		json
+// @Produce	json
+// @Param		page	query		int	false	"Página (padrão 1)"							default(1)	minimum(1)
+// @Param		limit	query		int	false	"Itens por página (padrão 20, máximo 100)"	default(20)	minimum(1)	maximum(100)
+// @Success	200		{object}	dto.PageWorkspacesEnvelope
+// @Failure	400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure	401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Security	BearerAuth
+// @Router		/workspace/member [get]
 func GetMyWorkspaces() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		userID, err := middleware.CurrentUserID(c)
@@ -78,6 +90,21 @@ func GetMyWorkspaces() fiber.Handler {
 	}
 }
 
+// @Summary		Lista os membros de um workspace
+// @Description	Qualquer membro pode ver.
+// @Tags			workspace-members
+// @Accept			json
+// @Produce		json
+// @Param			id		path		string	true	"ID do workspace (ObjectID)"
+// @Param			page	query		int		false	"Página (padrão 1)"							default(1)	minimum(1)
+// @Param			limit	query		int		false	"Itens por página (padrão 20, máximo 100)"	default(20)	minimum(1)	maximum(100)
+// @Param			role	query		string	false	"Filtra por role(s): member, manager, admin (vírgula)"
+// @Success		200		{object}	dto.PageWorkspaceMembersEnvelope
+// @Failure		400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		404		{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security		BearerAuth
+// @Router			/workspace/member/{id} [get]
 func GetMembersOnWorkspace() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		workspaceIDHex := c.Params("id")
@@ -141,6 +168,21 @@ func GetMembersOnWorkspace() fiber.Handler {
 	}
 }
 
+// @Summary		Adiciona um membro ao workspace
+// @Description	Exige manager ou admin; só admin adiciona admin.
+// @Tags			workspace-members
+// @Accept			json
+// @Produce		json
+// @Param			id		path		string				true	"ID do workspace (ObjectID)"
+// @Param			body	body		dto.MemberRequest	true	"Usuário e role"
+// @Success		200		{object}	dto.WorkspaceMemberEnvelope
+// @Failure		400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		403		{object}	dto.ErrorResponse	"Sem permissão para a ação"
+// @Failure		404		{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Failure		409		{object}	dto.ErrorResponse	"Já é membro"
+// @Security		BearerAuth
+// @Router			/workspace/member/{id} [post]
 func AddMemberToWorkspace() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		workspaceIDHex := c.Params("id")
@@ -259,6 +301,21 @@ func AddMemberToWorkspace() fiber.Handler {
 	}
 }
 
+// @Summary		Muda a role de um membro do workspace
+// @Description	Só admin promove, rebaixa ou mexe em admin.
+// @Tags			workspace-members
+// @Accept			json
+// @Produce		json
+// @Param			id		path		string				true	"ID do workspace (ObjectID)"
+// @Param			body	body		dto.MemberRequest	true	"Usuário e nova role"
+// @Success		200		{object}	dto.MessageEnvelope
+// @Failure		400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		403		{object}	dto.ErrorResponse	"Sem permissão para a ação"
+// @Failure		404		{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Failure		409		{object}	dto.ErrorResponse	"O workspace precisa de pelo menos um admin"
+// @Security		BearerAuth
+// @Router			/workspace/member/{id} [patch]
 func PatchWorkspaceMember() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		workspaceIdHex := c.Params("id")
@@ -361,6 +418,20 @@ func PatchWorkspaceMember() fiber.Handler {
 	}
 }
 
+// @Summary	Remove um membro do workspace
+// @Tags		workspace-members
+// @Accept		json
+// @Produce	json
+// @Param		id		path		string					true	"ID do workspace (ObjectID)"
+// @Param		body	body		dto.RemoveMemberRequest	true	"Usuário a remover"
+// @Success	200		{object}	dto.MessageEnvelope
+// @Failure	400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure	401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure	403		{object}	dto.ErrorResponse	"Sem permissão para a ação"
+// @Failure	404		{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Failure	409		{object}	dto.ErrorResponse	"O workspace precisa de pelo menos um admin"
+// @Security	BearerAuth
+// @Router		/workspace/member/{id} [delete]
 func DeleteWorkspaceMember() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		workspaceIDHex := c.Params("id")

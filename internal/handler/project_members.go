@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"kanban-management/internal/database"
+	_ "kanban-management/internal/dto" // só para o swag resolver os tipos das anotações
 	"kanban-management/internal/filters"
 	"kanban-management/internal/http"
 	"kanban-management/internal/middleware"
@@ -22,6 +23,21 @@ type SubjectProjectMemberRequest struct {
 	Role   string `json:"role"`
 }
 
+// @Summary		Lista os membros de um projeto
+// @Description	Qualquer membro pode ver.
+// @Tags			project-members
+// @Accept			json
+// @Produce		json
+// @Param			id		path		string	true	"ID do projeto (ObjectID)"
+// @Param			page	query		int		false	"Página (padrão 1)"							default(1)	minimum(1)
+// @Param			limit	query		int		false	"Itens por página (padrão 20, máximo 100)"	default(20)	minimum(1)	maximum(100)
+// @Param			role	query		string	false	"Filtra por role(s): member, manager, admin (vírgula)"
+// @Success		200		{object}	dto.PageProjectMembersEnvelope
+// @Failure		400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		404		{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security		BearerAuth
+// @Router			/project/member/{id} [get]
 func GetMembersOnProject() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		projectIDHex := c.Params("id")
@@ -85,6 +101,21 @@ func GetMembersOnProject() fiber.Handler {
 	}
 }
 
+// @Summary		Adiciona um membro ao projeto
+// @Description	Exige manager ou admin; só admin adiciona admin. Reativa quem tinha saído (200).
+// @Tags			project-members
+// @Accept			json
+// @Produce		json
+// @Param			id		path		string				true	"ID do projeto (ObjectID)"
+// @Param			body	body		dto.MemberRequest	true	"Usuário e role"
+// @Success		201		{object}	dto.ProjectMemberEnvelope
+// @Failure		400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		403		{object}	dto.ErrorResponse	"Sem permissão para a ação"
+// @Failure		404		{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Failure		409		{object}	dto.ErrorResponse	"Já é membro"
+// @Security		BearerAuth
+// @Router			/project/member/{id} [post]
 func AddMemberToProject() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		projectIDHex := c.Params("id")
@@ -229,6 +260,21 @@ func AddMemberToProject() fiber.Handler {
 	}
 }
 
+// @Summary		Muda a role de um membro do projeto
+// @Description	Só admin promove, rebaixa ou mexe em admin.
+// @Tags			project-members
+// @Accept			json
+// @Produce		json
+// @Param			id		path		string				true	"ID do projeto (ObjectID)"
+// @Param			body	body		dto.MemberRequest	true	"Usuário e nova role"
+// @Success		200		{object}	dto.MessageEnvelope
+// @Failure		400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		403		{object}	dto.ErrorResponse	"Sem permissão para a ação"
+// @Failure		404		{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Failure		409		{object}	dto.ErrorResponse	"O projeto precisa de pelo menos um admin"
+// @Security		BearerAuth
+// @Router			/project/member/{id} [patch]
 func PatchProjectMember() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		projectIDHex := c.Params("id")
@@ -341,6 +387,20 @@ func PatchProjectMember() fiber.Handler {
 	}
 }
 
+// @Summary	Remove um membro do projeto
+// @Tags		project-members
+// @Accept		json
+// @Produce	json
+// @Param		id		path		string					true	"ID do projeto (ObjectID)"
+// @Param		body	body		dto.RemoveMemberRequest	true	"Usuário a remover"
+// @Success	200		{object}	dto.MessageEnvelope
+// @Failure	400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure	401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure	403		{object}	dto.ErrorResponse	"Sem permissão para a ação"
+// @Failure	404		{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Failure	409		{object}	dto.ErrorResponse	"O projeto precisa de pelo menos um admin"
+// @Security	BearerAuth
+// @Router		/project/member/{id} [delete]
 func DeleteProjectMember() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		projectIDHex := c.Params("id")

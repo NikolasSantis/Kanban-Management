@@ -1,12 +1,13 @@
 package handler
 
 import (
-	"kanban-management/internal/middleware"
 	"context"
 	"encoding/json"
 	"kanban-management/internal/database"
+	_ "kanban-management/internal/dto" // só para o swag resolver os tipos das anotações
 	userEvents "kanban-management/internal/events/user"
 	"kanban-management/internal/http"
+	"kanban-management/internal/middleware"
 	"kanban-management/internal/models"
 	"kanban-management/internal/services"
 	"net/mail"
@@ -18,6 +19,18 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
+// @Summary		Busca um usuário
+// @Description	Nunca devolve a senha.
+// @Tags			users
+// @Accept			json
+// @Produce		json
+// @Param			id	path		string	true	"ID do usuário (ObjectID)"
+// @Success		200	{object}	dto.UserEnvelope
+// @Failure		400	{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401	{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		404	{object}	dto.ErrorResponse	"Usuário não encontrado"
+// @Security		BearerAuth
+// @Router			/users/{id} [get]
 func GetUser() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		userIDHex := c.Params("id")
@@ -63,6 +76,19 @@ func GetUser() fiber.Handler {
 	}
 }
 
+// @Summary	Edita o próprio usuário
+// @Tags		users
+// @Accept		json
+// @Produce	json
+// @Param		id		path		string					true	"ID do usuário (ObjectID); precisa ser o do usuário logado"
+// @Param		body	body		dto.UpdateUserRequest	true	"Campos a alterar"
+// @Success	200		{object}	dto.UpdateResultEnvelope
+// @Failure	400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure	401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure	403		{object}	dto.ErrorResponse	"Só o próprio usuário pode se editar"
+// @Failure	409		{object}	dto.ErrorResponse	"E-mail já em uso"
+// @Security	BearerAuth
+// @Router		/users/{id} [patch]
 func PatchUser() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		userIDHex := c.Params("id")
@@ -177,6 +203,17 @@ func PatchUser() fiber.Handler {
 	}
 }
 
+// @Summary	Deleta o próprio usuário (soft delete)
+// @Tags		users
+// @Accept		json
+// @Produce	json
+// @Param		id	path		string	true	"ID do usuário (ObjectID); precisa ser o do usuário logado"
+// @Success	200	{object}	dto.MessageEnvelope
+// @Failure	400	{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure	401	{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure	403	{object}	dto.ErrorResponse	"Só o próprio usuário pode se deletar"
+// @Security	BearerAuth
+// @Router		/users/{id} [delete]
 func DeleteUser() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		userIDHex := c.Params("id")

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	_ "kanban-management/internal/dto" // só para o swag resolver os tipos das anotações
 	"kanban-management/internal/filters"
 	"kanban-management/internal/pagination"
 	"kanban-management/internal/search"
@@ -55,6 +56,34 @@ func invalidCardResponse(c *fiber.Ctx, message string) error {
 	return http.Error(c, 400, fiber.Map{"error": message}, message)
 }
 
+// @Summary		Lista os cards de um board
+// @Description	Com qualquer filtro, q ou sort a resposta é uma lista plana paginada ({items, pagination}). Sem eles, data é {columns: {"<id da coluna>": {items, pagination}}} com a mesma page/limit de cada coluna.
+// @Tags			cards
+// @Accept			json
+// @Produce		json
+// @Param			board_id		path		string	true	"ID do board (ObjectID)"
+// @Param			page			query		int		false	"Página (padrão 1)"							default(1)	minimum(1)
+// @Param			limit			query		int		false	"Itens por página (padrão 20, máximo 100)"	default(20)	minimum(1)	maximum(100)
+// @Param			column_id		query		string	false	"Coluna(s), separadas por vírgula"
+// @Param			priority		query		string	false	"Prioridade(s): low, medium, high, urgent (vírgula)"
+// @Param			label_ids		query		string	false	"Ids de labels (vírgula)"
+// @Param			label_mode		query		string	false	"all (padrão: precisa ter todas) ou any"	Enums(all, any)
+// @Param			assignee_id		query		string	false	"Id do responsável, me ou none"
+// @Param			created_by		query		string	false	"Id do criador ou me"
+// @Param			status			query		string	false	"open, completed ou all (padrão)"	Enums(open, completed, all)
+// @Param			due_before		query		string	false	"Entrega até esta data (YYYY-MM-DD = fim do dia, ou RFC 3339)"
+// @Param			due_after		query		string	false	"Entrega a partir desta data (YYYY-MM-DD = início do dia, ou RFC 3339)"
+// @Param			overdue			query		bool	false	"true = atrasados (data no passado e não concluídos)"
+// @Param			has_due_date	query		bool	false	"true/false = tem (ou não) data de entrega"
+// @Param			q				query		string	false	"Busca por texto no título e na descrição (2 a 100 caracteres)"
+// @Param			sort			query		string	false	"position (padrão), created_at, updated_at, due_date, priority, title"	Enums(position, created_at, updated_at, due_date, priority, title)
+// @Param			order			query		string	false	"asc (padrão) ou desc"													Enums(asc, desc)
+// @Success		200				{object}	dto.PageCardsEnvelope
+// @Failure		400				{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401				{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		404				{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security		BearerAuth
+// @Router			/card/board/{board_id} [get]
 func GetCards() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		boardID, err := bson.ObjectIDFromHex(c.Params("board_id"))
@@ -150,6 +179,19 @@ func cardsPage(ctx context.Context, boardID bson.ObjectID, columnID string, para
 	return pagination.NewPage(models.ToCardResponses(cards, now), params, total), nil
 }
 
+// @Summary		Cria um card
+// @Description	Vai para o fim da coluna (position 1000, 2000...). Prioridade padrão: medium. due_date em RFC 3339 ou YYYY-MM-DD.
+// @Tags			cards
+// @Accept			json
+// @Produce		json
+// @Param			board_id	path		string					true	"ID do board (ObjectID)"
+// @Param			body		body		dto.CreateCardRequest	true	"Dados do card"
+// @Success		201			{object}	dto.CardEnvelope
+// @Failure		400			{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401			{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		404			{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security		BearerAuth
+// @Router			/card/board/{board_id} [post]
 func CreateCard() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		boardID, err := bson.ObjectIDFromHex(c.Params("board_id"))
@@ -342,6 +384,17 @@ func loadCardForUser(c *fiber.Ctx, ctx context.Context, action services.Action) 
 	return card, userID, role, false, nil
 }
 
+// @Summary	Busca um card
+// @Tags		cards
+// @Accept		json
+// @Produce	json
+// @Param		card_id	path		string	true	"ID do card (ObjectID)"
+// @Success	200		{object}	dto.CardEnvelope
+// @Failure	400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure	401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure	404		{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security	BearerAuth
+// @Router		/card/{card_id} [get]
 func GetCard() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		card, _, _, handled, err := loadCardForUser(c, context.Background(), services.ActionCardView)
@@ -354,6 +407,19 @@ func GetCard() fiber.Handler {
 	}
 }
 
+// @Summary		Edita um card
+// @Description	Só aceita title, description, assignee_ids, priority, due_date e label_ids. Devolve o card atualizado.
+// @Tags			cards
+// @Accept			json
+// @Produce		json
+// @Param			card_id	path		string					true	"ID do card (ObjectID)"
+// @Param			body	body		dto.UpdateCardRequest	true	"Campos a alterar (due_date: null remove)"
+// @Success		200		{object}	dto.CardEnvelope
+// @Failure		400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		404		{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security		BearerAuth
+// @Router			/card/{card_id} [patch]
 func PatchCard() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx := context.Background()
@@ -512,6 +578,18 @@ func PatchCard() fiber.Handler {
 	}
 }
 
+// @Summary	Move um card (coluna e posição)
+// @Tags		cards
+// @Accept		json
+// @Produce	json
+// @Param		card_id	path		string				true	"ID do card (ObjectID)"
+// @Param		body	body		dto.MoveCardRequest	true	"Coluna de destino e vizinhos"
+// @Success	200		{object}	dto.CardEnvelope
+// @Failure	400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure	401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure	404		{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security	BearerAuth
+// @Router		/card/{card_id}/move [patch]
 func MoveCard() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx := context.Background()
@@ -683,6 +761,19 @@ func resolveMovePosition(ctx context.Context, moving *models.Card, columnID stri
 	return 0, errors.New("could not find room between cards after renumbering")
 }
 
+// @Summary		Deleta um card (soft delete)
+// @Description	Manager/admin apagam qualquer card; member só o que criou.
+// @Tags			cards
+// @Accept			json
+// @Produce		json
+// @Param			card_id	path		string	true	"ID do card (ObjectID)"
+// @Success		200		{object}	dto.StringEnvelope
+// @Failure		400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		403		{object}	dto.ErrorResponse	"Sem permissão para a ação"
+// @Failure		404		{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security		BearerAuth
+// @Router			/card/{card_id} [delete]
 func DeleteCard() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx := context.Background()
@@ -738,6 +829,19 @@ func DeleteCard() fiber.Handler {
 
 // CompleteCard marca o card como concluído (completed_at/completed_by definidos
 // pelo servidor). É idempotente: se já estiver concluído, devolve o card sem alterar.
+//
+//	@Summary		Marca o card como concluído
+//	@Description	Idempotente: se já estiver concluído, devolve o card sem alterar.
+//	@Tags			cards
+//	@Accept			json
+//	@Produce		json
+//	@Param			card_id	path		string	true	"ID do card (ObjectID)"
+//	@Success		200		{object}	dto.CardEnvelope
+//	@Failure		400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+//	@Failure		401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+//	@Failure		404		{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+//	@Security		BearerAuth
+//	@Router			/card/{card_id}/complete [post]
 func CompleteCard() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx := context.Background()
@@ -774,6 +878,18 @@ func CompleteCard() fiber.Handler {
 }
 
 // ReopenCard remove a conclusão do card.
+//
+//	@Summary	Reabre um card concluído
+//	@Tags		cards
+//	@Accept		json
+//	@Produce	json
+//	@Param		card_id	path		string	true	"ID do card (ObjectID)"
+//	@Success	200		{object}	dto.CardEnvelope
+//	@Failure	400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+//	@Failure	401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+//	@Failure	404		{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+//	@Security	BearerAuth
+//	@Router		/card/{card_id}/reopen [post]
 func ReopenCard() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx := context.Background()
@@ -811,6 +927,20 @@ const maxDueRangeDays = 90
 
 // GetCardsDue lista os cards do projeto com entrega no intervalo ?from=&to=
 // (padrão: próximos 7 dias; no máximo 90 dias). Visão de calendário.
+//
+//	@Summary	Cards do projeto com entrega no intervalo (calendário)
+//	@Tags		cards
+//	@Accept		json
+//	@Produce	json
+//	@Param		project_id	path		string	true	"ID do projeto (ObjectID)"
+//	@Param		from		query		string	false	"Início (YYYY-MM-DD ou RFC 3339); padrão: agora"
+//	@Param		to			query		string	false	"Fim (padrão: 7 dias depois de from); intervalo máximo de 90 dias"
+//	@Success	200			{object}	dto.CardListEnvelope
+//	@Failure	400			{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+//	@Failure	401			{object}	dto.ErrorResponse	"Sem token ou token inválido"
+//	@Failure	404			{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+//	@Security	BearerAuth
+//	@Router		/card/project/{project_id}/due [get]
 func GetCardsDue() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		projectID, err := bson.ObjectIDFromHex(c.Params("project_id"))
@@ -884,6 +1014,20 @@ func GetCardsDue() fiber.Handler {
 // A label precisa ser ativa e do mesmo board do card.
 // Obs.: mover card entre boards não existe (mover é só entre colunas do mesmo
 // board). Se um dia existir, as labels do card precisam ser limpas.
+//
+//	@Summary		Aplica uma label ao card
+//	@Description	Aplicar duas vezes não duplica.
+//	@Tags			cards
+//	@Accept			json
+//	@Produce		json
+//	@Param			card_id		path		string	true	"ID do card (ObjectID)"
+//	@Param			label_id	path		string	true	"ID da label (ObjectID)"
+//	@Success		200			{object}	dto.CardEnvelope
+//	@Failure		400			{object}	dto.ErrorResponse	"Label inválida, de outro board ou limite de 10 por card"
+//	@Failure		401			{object}	dto.ErrorResponse	"Sem token ou token inválido"
+//	@Failure		404			{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+//	@Security		BearerAuth
+//	@Router			/card/{card_id}/labels/{label_id} [post]
 func ApplyLabel() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx := context.Background()
@@ -936,6 +1080,19 @@ func ApplyLabel() fiber.Handler {
 }
 
 // RemoveLabel tira uma label do card ($pull). Se ela não estava no card, é 200 sem alterar.
+//
+//	@Summary	Remove uma label do card
+//	@Tags		cards
+//	@Accept		json
+//	@Produce	json
+//	@Param		card_id		path		string	true	"ID do card (ObjectID)"
+//	@Param		label_id	path		string	true	"ID da label (ObjectID)"
+//	@Success	200			{object}	dto.CardEnvelope
+//	@Failure	400			{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+//	@Failure	401			{object}	dto.ErrorResponse	"Sem token ou token inválido"
+//	@Failure	404			{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+//	@Security	BearerAuth
+//	@Router		/card/{card_id}/labels/{label_id} [delete]
 func RemoveLabel() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx := context.Background()
@@ -1025,6 +1182,35 @@ func listFilteredCards(c *fiber.Ctx, ctx context.Context, scope bson.M, cardQuer
 
 // SearchProjectCards busca cards em todos os boards do projeto (?q= obrigatório;
 // aceita os mesmos filtros e ordenação). Cada item traz board_id e column_id.
+//
+//	@Summary		Busca cards em todos os boards do projeto
+//	@Description	O parâmetro q é obrigatório. Aceita os mesmos filtros e ordenação; cada item traz board_id e column_id.
+//	@Tags			cards
+//	@Accept			json
+//	@Produce		json
+//	@Param			project_id		path		string	true	"ID do projeto (ObjectID)"
+//	@Param			page			query		int		false	"Página (padrão 1)"							default(1)	minimum(1)
+//	@Param			limit			query		int		false	"Itens por página (padrão 20, máximo 100)"	default(20)	minimum(1)	maximum(100)
+//	@Param			column_id		query		string	false	"Coluna(s), separadas por vírgula"
+//	@Param			priority		query		string	false	"Prioridade(s): low, medium, high, urgent (vírgula)"
+//	@Param			label_ids		query		string	false	"Ids de labels (vírgula)"
+//	@Param			label_mode		query		string	false	"all (padrão: precisa ter todas) ou any"	Enums(all, any)
+//	@Param			assignee_id		query		string	false	"Id do responsável, me ou none"
+//	@Param			created_by		query		string	false	"Id do criador ou me"
+//	@Param			status			query		string	false	"open, completed ou all (padrão)"	Enums(open, completed, all)
+//	@Param			due_before		query		string	false	"Entrega até esta data (YYYY-MM-DD = fim do dia, ou RFC 3339)"
+//	@Param			due_after		query		string	false	"Entrega a partir desta data (YYYY-MM-DD = início do dia, ou RFC 3339)"
+//	@Param			overdue			query		bool	false	"true = atrasados (data no passado e não concluídos)"
+//	@Param			has_due_date	query		bool	false	"true/false = tem (ou não) data de entrega"
+//	@Param			q				query		string	false	"Busca por texto no título e na descrição (2 a 100 caracteres)"
+//	@Param			sort			query		string	false	"position (padrão), created_at, updated_at, due_date, priority, title"	Enums(position, created_at, updated_at, due_date, priority, title)
+//	@Param			order			query		string	false	"asc (padrão) ou desc"													Enums(asc, desc)
+//	@Success		200				{object}	dto.PageCardsEnvelope
+//	@Failure		400				{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+//	@Failure		401				{object}	dto.ErrorResponse	"Sem token ou token inválido"
+//	@Failure		404				{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+//	@Security		BearerAuth
+//	@Router			/card/project/{project_id}/search [get]
 func SearchProjectCards() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		projectID, err := bson.ObjectIDFromHex(c.Params("project_id"))

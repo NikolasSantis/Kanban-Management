@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"kanban-management/internal/database"
+	_ "kanban-management/internal/dto" // só para o swag resolver os tipos das anotações
 	projectEvent "kanban-management/internal/events/project"
 	"kanban-management/internal/filters"
 	"kanban-management/internal/http"
@@ -26,6 +27,20 @@ var projectPatchableFields = map[string]bool{
 	"status":      true,
 }
 
+// @Summary	Lista os projetos em que o usuário é membro
+// @Tags		projects
+// @Accept		json
+// @Produce	json
+// @Param		page			query		int		false	"Página (padrão 1)"							default(1)	minimum(1)
+// @Param		limit			query		int		false	"Itens por página (padrão 20, máximo 100)"	default(20)	minimum(1)	maximum(100)
+// @Param		q				query		string	false	"Busca no nome e na descrição (2 a 100 caracteres)"
+// @Param		status			query		string	false	"Status (vírgula), ex.: active"
+// @Param		workspace_id	query		string	false	"Filtra por workspace (ObjectID)"
+// @Success	200				{object}	dto.PageProjectsEnvelope
+// @Failure	400				{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure	401				{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Security	BearerAuth
+// @Router		/project/ [get]
 func MyProjects() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		userID, err := middleware.CurrentUserID(c)
@@ -115,6 +130,18 @@ func MyProjects() fiber.Handler {
 	}
 }
 
+// @Summary		Cria um projeto
+// @Description	Quem cria vira admin do projeto.
+// @Tags			projects
+// @Accept			json
+// @Produce		json
+// @Param			body	body		dto.CreateProjectRequest	true	"Dados do projeto"
+// @Success		201		{object}	dto.ProjectEnvelope
+// @Failure		400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		404		{object}	dto.ErrorResponse	"Workspace não existe ou o usuário não é membro"
+// @Security		BearerAuth
+// @Router			/project/ [post]
 func CreateProject() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var project *models.Project
@@ -204,6 +231,20 @@ func CreateProject() fiber.Handler {
 	}
 }
 
+// @Summary		Edita um projeto
+// @Description	Exige manager ou admin do projeto.
+// @Tags			projects
+// @Accept			json
+// @Produce		json
+// @Param			id		path		string						true	"ID do projeto (ObjectID)"
+// @Param			body	body		dto.UpdateProjectRequest	true	"Campos a alterar (name, description, status)"
+// @Success		200		{object}	dto.StringEnvelope
+// @Failure		400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		403		{object}	dto.ErrorResponse	"Sem permissão para a ação"
+// @Failure		404		{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security		BearerAuth
+// @Router			/project/{id} [patch]
 func PatchProject() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		projectIDHex := c.Params("id")
@@ -301,6 +342,19 @@ func PatchProject() fiber.Handler {
 	}
 }
 
+// @Summary		Deleta um projeto (soft delete)
+// @Description	Exige admin. Deleta em cascata os membros, boards, cards e labels.
+// @Tags			projects
+// @Accept			json
+// @Produce		json
+// @Param			id	path		string	true	"ID do projeto (ObjectID)"
+// @Success		200	{object}	dto.StringEnvelope
+// @Failure		400	{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401	{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		403	{object}	dto.ErrorResponse	"Sem permissão para a ação"
+// @Failure		404	{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security		BearerAuth
+// @Router			/project/{id} [delete]
 func DeleteProject() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		projectIDHex := c.Params("id")

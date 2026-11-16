@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	_ "kanban-management/internal/dto" // só para o swag resolver os tipos das anotações
 	"log/slog"
 	"strings"
 	"time"
@@ -71,6 +72,21 @@ func validColumnName(name string) (string, bool) {
 	return name, length >= 1 && length <= maxColumnNameLength
 }
 
+// @Summary		Adiciona uma coluna ao board
+// @Description	Exige manager ou admin. Sem id, o servidor gera um.
+// @Tags			columns
+// @Accept			json
+// @Produce		json
+// @Param			board_id	path		string					true	"ID do board (ObjectID)"
+// @Param			body		body		dto.CreateColumnRequest	true	"Dados da coluna"
+// @Success		201			{object}	dto.ColumnEnvelope
+// @Failure		400			{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401			{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		403			{object}	dto.ErrorResponse	"Sem permissão para a ação"
+// @Failure		404			{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Failure		409			{object}	dto.ErrorResponse	"Já existe uma coluna com esse id (mesmo deletada)"
+// @Security		BearerAuth
+// @Router			/board/{board_id}/columns [post]
 func AddColumn() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx := context.Background()
@@ -155,6 +171,20 @@ func AddColumn() fiber.Handler {
 	}
 }
 
+// @Summary	Edita uma coluna
+// @Tags		columns
+// @Accept		json
+// @Produce	json
+// @Param		board_id	path		string					true	"ID do board (ObjectID)"
+// @Param		column_id	path		string					true	"ID da coluna (string)"
+// @Param		body		body		dto.UpdateColumnRequest	true	"Campos a alterar"
+// @Success	200			{object}	dto.StringEnvelope
+// @Failure	400			{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure	401			{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure	403			{object}	dto.ErrorResponse	"Sem permissão para a ação"
+// @Failure	404			{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security	BearerAuth
+// @Router		/board/{board_id}/columns/{column_id} [patch]
 func PatchColumn() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx := context.Background()
@@ -226,6 +256,19 @@ func PatchColumn() fiber.Handler {
 	}
 }
 
+// @Summary	Deleta uma coluna (soft delete)
+// @Tags		columns
+// @Accept		json
+// @Produce	json
+// @Param		board_id	path		string	true	"ID do board (ObjectID)"
+// @Param		column_id	path		string	true	"ID da coluna (string)"
+// @Success	200			{object}	dto.StringEnvelope
+// @Failure	401			{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure	403			{object}	dto.ErrorResponse	"Sem permissão para a ação"
+// @Failure	404			{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Failure	409			{object}	dto.ErrorResponse	"A coluna ainda tem cards ativos"
+// @Security	BearerAuth
+// @Router		/board/{board_id}/columns/{column_id} [delete]
 func DeleteColumn() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx := context.Background()

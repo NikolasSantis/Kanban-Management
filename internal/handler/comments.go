@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	_ "kanban-management/internal/dto" // só para o swag resolver os tipos das anotações
 	"kanban-management/internal/filters"
 	"kanban-management/internal/pagination"
 	"log/slog"
@@ -43,6 +44,21 @@ func commentResponse(ctx context.Context, comment models.Comment) (models.Commen
 	return services.ToCommentResponses([]models.Comment{comment}, authors)[0], nil
 }
 
+// @Summary		Lista os comentários de um card
+// @Description	Mais antigos primeiro. Cada item traz author {id, name} (nunca e-mail).
+// @Tags			comments
+// @Accept			json
+// @Produce		json
+// @Param			card_id		path		string	true	"ID do card (ObjectID)"
+// @Param			page		query		int		false	"Página (padrão 1)"							default(1)	minimum(1)
+// @Param			limit		query		int		false	"Itens por página (padrão 20, máximo 100)"	default(20)	minimum(1)	maximum(100)
+// @Param			author_id	query		string	false	"Filtra por autor (ObjectID ou me)"
+// @Success		200			{object}	dto.PageCommentsEnvelope
+// @Failure		400			{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401			{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		404			{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security		BearerAuth
+// @Router			/comment/card/{card_id} [get]
 func GetComments() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx := context.Background()
@@ -101,6 +117,18 @@ func GetComments() fiber.Handler {
 	}
 }
 
+// @Summary	Comenta em um card
+// @Tags		comments
+// @Accept		json
+// @Produce	json
+// @Param		card_id	path		string						true	"ID do card (ObjectID)"
+// @Param		body	body		dto.CreateCommentRequest	true	"Texto (1 a 5000 caracteres)"
+// @Success	201		{object}	dto.CommentEnvelope
+// @Failure	400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure	401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure	404		{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security	BearerAuth
+// @Router		/comment/card/{card_id} [post]
 func CreateComment() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx := context.Background()
@@ -211,6 +239,20 @@ func isCommentAuthor(comment *models.Comment, userID bson.ObjectID) bool {
 }
 
 // PatchComment: só o autor edita (nem admin edita texto alheio).
+//
+//	@Summary	Edita o próprio comentário
+//	@Tags		comments
+//	@Accept		json
+//	@Produce	json
+//	@Param		comment_id	path		string						true	"ID do comentário (ObjectID)"
+//	@Param		body		body		dto.UpdateCommentRequest	true	"Novo texto"
+//	@Success	200			{object}	dto.CommentEnvelope
+//	@Failure	400			{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+//	@Failure	401			{object}	dto.ErrorResponse	"Sem token ou token inválido"
+//	@Failure	403			{object}	dto.ErrorResponse	"Só o autor edita"
+//	@Failure	404			{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+//	@Security	BearerAuth
+//	@Router		/comment/{comment_id} [patch]
 func PatchComment() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx := context.Background()
@@ -272,6 +314,19 @@ func PatchComment() fiber.Handler {
 }
 
 // DeleteComment: o autor ou quem tem comment:moderate (manager/admin).
+//
+//	@Summary	Apaga um comentário (soft delete)
+//	@Tags		comments
+//	@Accept		json
+//	@Produce	json
+//	@Param		comment_id	path		string	true	"ID do comentário (ObjectID)"
+//	@Success	200			{object}	dto.StringEnvelope
+//	@Failure	400			{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+//	@Failure	401			{object}	dto.ErrorResponse	"Sem token ou token inválido"
+//	@Failure	403			{object}	dto.ErrorResponse	"Só o autor, ou manager/admin (moderação)"
+//	@Failure	404			{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+//	@Security	BearerAuth
+//	@Router		/comment/{comment_id} [delete]
 func DeleteComment() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx := context.Background()

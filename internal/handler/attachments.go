@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	_ "kanban-management/internal/dto" // só para o swag resolver os tipos das anotações
 	"kanban-management/internal/filters"
 	"kanban-management/internal/pagination"
 	"log/slog"
@@ -29,6 +30,20 @@ type linkRequest struct {
 	URL  *string `json:"url"`
 }
 
+// @Summary	Lista os anexos de um card
+// @Tags		attachments
+// @Accept		json
+// @Produce	json
+// @Param		card_id	path		string	true	"ID do card (ObjectID)"
+// @Param		page	query		int		false	"Página (padrão 1)"							default(1)	minimum(1)
+// @Param		limit	query		int		false	"Itens por página (padrão 20, máximo 100)"	default(20)	minimum(1)	maximum(100)
+// @Param		kind	query		string	false	"file ou link"								Enums(file, link)
+// @Success	200		{object}	dto.PageAttachmentsEnvelope
+// @Failure	400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure	401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure	404		{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security	BearerAuth
+// @Router		/attachment/card/{card_id} [get]
 func GetAttachments() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx := context.Background()
@@ -89,6 +104,22 @@ func attachmentLimitReached(c *fiber.Ctx, ctx context.Context, cardID bson.Objec
 
 // UploadAttachment recebe multipart/form-data com o campo "file". O storage é
 // injetado (local em produção, memória nos testes).
+//
+//	@Summary		Anexa um arquivo ao card
+//	@Description	O tipo é detectado pelo conteúdo, não pela extensão.
+//	@Tags			attachments
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Param			card_id	path		string	true	"ID do card (ObjectID)"
+//	@Param			file	formData	file	true	"Arquivo (png, jpeg, gif, webp, pdf, txt ou zip; até ATTACHMENT_MAX_SIZE_MB)"
+//	@Success		201		{object}	dto.AttachmentEnvelope
+//	@Failure		400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+//	@Failure		401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+//	@Failure		404		{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+//	@Failure		409		{object}	dto.ErrorResponse	"Limite de 20 anexos por card"
+//	@Failure		413		{object}	dto.ErrorResponse	"Arquivo grande demais"
+//	@Security		BearerAuth
+//	@Router			/attachment/card/{card_id} [post]
 func UploadAttachment(store storage.Storage) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx := context.Background()
@@ -189,6 +220,20 @@ func UploadAttachment(store storage.Storage) fiber.Handler {
 }
 
 // CreateLinkAttachment cria um anexo "por link" (sem arquivo).
+//
+//	@Summary	Anexa um link ao card
+//	@Tags		attachments
+//	@Accept		json
+//	@Produce	json
+//	@Param		card_id	path		string							true	"ID do card (ObjectID)"
+//	@Param		body	body		dto.CreateLinkAttachmentRequest	true	"Nome e URL (http ou https)"
+//	@Success	201		{object}	dto.AttachmentEnvelope
+//	@Failure	400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+//	@Failure	401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+//	@Failure	404		{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+//	@Failure	409		{object}	dto.ErrorResponse	"Limite de 20 anexos por card"
+//	@Security	BearerAuth
+//	@Router		/attachment/card/{card_id}/link [post]
 func CreateLinkAttachment() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx := context.Background()
@@ -285,6 +330,18 @@ func loadAttachmentForUser(c *fiber.Ctx, ctx context.Context) (attachment *model
 }
 
 // DownloadAttachment faz o stream do arquivo passando pela API (com permissão).
+//
+//	@Summary		Baixa o arquivo de um anexo
+//	@Description	Passa pela API, com checagem de permissão.
+//	@Tags			attachments
+//	@Produce		application/octet-stream
+//	@Param			attachment_id	path		string				true	"ID do anexo (ObjectID)"
+//	@Success		200				{file}		file				"Bytes do arquivo"
+//	@Failure		400				{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+//	@Failure		401				{object}	dto.ErrorResponse	"Sem token ou token inválido"
+//	@Failure		404				{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+//	@Security		BearerAuth
+//	@Router			/attachment/{attachment_id}/download [get]
 func DownloadAttachment(store storage.Storage) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx := context.Background()
@@ -322,6 +379,19 @@ func DownloadAttachment(store storage.Storage) fiber.Handler {
 
 // DeleteAttachment: quem enviou ou attachment:moderate. Soft delete no Mongo e
 // remoção do arquivo no storage (falha ali só vira WARN).
+//
+//	@Summary	Apaga um anexo (soft delete)
+//	@Tags		attachments
+//	@Accept		json
+//	@Produce	json
+//	@Param		attachment_id	path		string	true	"ID do anexo (ObjectID)"
+//	@Success	200				{object}	dto.StringEnvelope
+//	@Failure	400				{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+//	@Failure	401				{object}	dto.ErrorResponse	"Sem token ou token inválido"
+//	@Failure	403				{object}	dto.ErrorResponse	"Só quem enviou, ou manager/admin"
+//	@Failure	404				{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+//	@Security	BearerAuth
+//	@Router		/attachment/{attachment_id} [delete]
 func DeleteAttachment(store storage.Storage) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx := context.Background()

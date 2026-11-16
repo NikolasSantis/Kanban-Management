@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"kanban-management/internal/database"
+	_ "kanban-management/internal/dto" // só para o swag resolver os tipos das anotações
 	boardEvent "kanban-management/internal/events/board"
 	"kanban-management/internal/http"
 	"kanban-management/internal/middleware"
@@ -46,6 +47,20 @@ func findActiveBoard(ctx context.Context, boardID bson.ObjectID) (*models.Board,
 	return &board, nil
 }
 
+// @Summary	Lista os boards de um projeto
+// @Tags		boards
+// @Accept		json
+// @Produce	json
+// @Param		id		path		string	true	"ID do projeto (ObjectID)"
+// @Param		page	query		int		false	"Página (padrão 1)"							default(1)	minimum(1)
+// @Param		limit	query		int		false	"Itens por página (padrão 20, máximo 100)"	default(20)	minimum(1)	maximum(100)
+// @Param		q		query		string	false	"Busca no nome (2 a 100 caracteres)"
+// @Success	200		{object}	dto.PageBoardsEnvelope
+// @Failure	400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure	401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure	404		{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security	BearerAuth
+// @Router		/board/project/{id} [get]
 func GetBoards() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		projectIDHex := c.Params("id")
@@ -107,6 +122,18 @@ func GetBoards() fiber.Handler {
 	}
 }
 
+// @Summary		Busca um board
+// @Description	Retorna o board se o usuário for membro do projeto.
+// @Tags			boards
+// @Accept			json
+// @Produce		json
+// @Param			board_id	path		string	true	"ID do board (ObjectID)"
+// @Success		200			{object}	dto.BoardEnvelope
+// @Failure		400			{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401			{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		404			{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security		BearerAuth
+// @Router			/board/{board_id} [get]
 func GetBoard() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		boardIDHex := c.Params("board_id")
@@ -151,6 +178,20 @@ func GetBoard() fiber.Handler {
 	}
 }
 
+// @Summary		Cria um board
+// @Description	Exige manager ou admin do projeto.
+// @Tags			boards
+// @Accept			json
+// @Produce		json
+// @Param			id		path		string					true	"ID do projeto (ObjectID)"
+// @Param			body	body		dto.CreateBoardRequest	true	"Dados do board"
+// @Success		201		{object}	dto.BoardEnvelope
+// @Failure		400		{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401		{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		403		{object}	dto.ErrorResponse	"Sem permissão para a ação"
+// @Failure		404		{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security		BearerAuth
+// @Router			/board/project/{id} [post]
 func CreateBoard() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		projectIDHex := c.Params("id")
@@ -236,6 +277,20 @@ func CreateBoard() fiber.Handler {
 	}
 }
 
+// @Summary		Edita um board
+// @Description	Exige manager ou admin. Campos internos (_id, project_id, created_at...) são ignorados.
+// @Tags			boards
+// @Accept			json
+// @Produce		json
+// @Param			board_id	path		string					true	"ID do board (ObjectID)"
+// @Param			body		body		dto.UpdateBoardRequest	true	"Campos a alterar"
+// @Success		200			{object}	dto.StringEnvelope
+// @Failure		400			{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401			{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		403			{object}	dto.ErrorResponse	"Sem permissão para a ação"
+// @Failure		404			{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security		BearerAuth
+// @Router			/board/{board_id} [patch]
 func PatchBoard() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		boardIDHex := c.Params("board_id")
@@ -324,6 +379,19 @@ func PatchBoard() fiber.Handler {
 	}
 }
 
+// @Summary		Deleta um board (soft delete)
+// @Description	Exige manager ou admin. Deleta em cascata os cards e as labels do board.
+// @Tags			boards
+// @Accept			json
+// @Produce		json
+// @Param			board_id	path		string	true	"ID do board (ObjectID)"
+// @Success		200			{object}	dto.StringEnvelope
+// @Failure		400			{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401			{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		403			{object}	dto.ErrorResponse	"Sem permissão para a ação"
+// @Failure		404			{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security		BearerAuth
+// @Router			/board/{board_id} [delete]
 func DeleteBoard() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		boardIDHex := c.Params("board_id")

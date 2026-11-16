@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	_ "kanban-management/internal/dto" // só para o swag resolver os tipos das anotações
 	"kanban-management/internal/pagination"
 	"log/slog"
 	"time"
@@ -26,6 +27,19 @@ type labelRequest struct {
 
 const duplicateLabelMessage = "Label name already exists on this board"
 
+// @Summary	Lista as labels de um board
+// @Tags		labels
+// @Accept		json
+// @Produce	json
+// @Param		board_id	path		string	true	"ID do board (ObjectID)"
+// @Param		page		query		int		false	"Página (padrão 1)"							default(1)	minimum(1)
+// @Param		limit		query		int		false	"Itens por página (padrão 20, máximo 100)"	default(20)	minimum(1)	maximum(100)
+// @Success	200			{object}	dto.PageLabelsEnvelope
+// @Failure	400			{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure	401			{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure	404			{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security	BearerAuth
+// @Router		/label/board/{board_id} [get]
 func GetLabels() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		boardID, err := bson.ObjectIDFromHex(c.Params("board_id"))
@@ -75,6 +89,21 @@ func GetLabels() fiber.Handler {
 	}
 }
 
+// @Summary		Cria uma label no board
+// @Description	Exige manager ou admin. Nome único por board (sem diferenciar maiúsculas). Máximo de 50 por board.
+// @Tags			labels
+// @Accept			json
+// @Produce		json
+// @Param			board_id	path		string					true	"ID do board (ObjectID)"
+// @Param			body		body		dto.CreateLabelRequest	true	"Nome (1 a 30) e cor #RRGGBB (opcional)"
+// @Success		201			{object}	dto.LabelEnvelope
+// @Failure		400			{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401			{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		403			{object}	dto.ErrorResponse	"Sem permissão para a ação"
+// @Failure		404			{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Failure		409			{object}	dto.ErrorResponse	"Label name already exists on this board"
+// @Security		BearerAuth
+// @Router			/label/board/{board_id} [post]
 func CreateLabel() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		boardID, err := bson.ObjectIDFromHex(c.Params("board_id"))
@@ -214,6 +243,20 @@ func loadLabelForManage(c *fiber.Ctx, ctx context.Context) (label *models.Label,
 	return label, userID, false, nil
 }
 
+// @Summary	Edita uma label
+// @Tags		labels
+// @Accept		json
+// @Produce	json
+// @Param		label_id	path		string					true	"ID da label (ObjectID)"
+// @Param		body		body		dto.UpdateLabelRequest	true	"Campos a alterar"
+// @Success	200			{object}	dto.LabelEnvelope
+// @Failure	400			{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure	401			{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure	403			{object}	dto.ErrorResponse	"Sem permissão para a ação"
+// @Failure	404			{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Failure	409			{object}	dto.ErrorResponse	"Conflito"
+// @Security	BearerAuth
+// @Router		/label/{label_id} [patch]
 func PatchLabel() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx := context.Background()
@@ -281,6 +324,19 @@ func PatchLabel() fiber.Handler {
 	}
 }
 
+// @Summary		Deleta uma label (soft delete)
+// @Description	Remove a label de todos os cards do board.
+// @Tags			labels
+// @Accept			json
+// @Produce		json
+// @Param			label_id	path		string	true	"ID da label (ObjectID)"
+// @Success		200			{object}	dto.StringEnvelope
+// @Failure		400			{object}	dto.ErrorResponse	"Parâmetro ou corpo inválido"
+// @Failure		401			{object}	dto.ErrorResponse	"Sem token ou token inválido"
+// @Failure		403			{object}	dto.ErrorResponse	"Sem permissão para a ação"
+// @Failure		404			{object}	dto.ErrorResponse	"Não existe ou o usuário não é membro"
+// @Security		BearerAuth
+// @Router			/label/{label_id} [delete]
 func DeleteLabel() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx := context.Background()

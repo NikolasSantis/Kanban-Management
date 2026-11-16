@@ -24,6 +24,42 @@ const (
 	disconnectTimeout = 5 * time.Second
 )
 
+// @title						Kanban Management API
+// @version					1.0
+// @description				API de Kanban: workspaces, projetos, boards, colunas, cards, labels, comentários e anexos.
+// @description				Todas as respostas usam o envelope {success, data, error}. As listagens devolvem data = {items, pagination}.
+// @description				Para autenticar: faça login em POST /auth/login, clique em "Authorize" e informe: Bearer <token>.
+// @BasePath					/
+// @tag.name					auth
+// @tag.description			Cadastro e login
+// @tag.name					users
+// @tag.description			Usuários
+// @tag.name					workspaces
+// @tag.description			Workspaces
+// @tag.name					workspace-members
+// @tag.description			Membros de workspace
+// @tag.name					projects
+// @tag.description			Projetos
+// @tag.name					project-members
+// @tag.description			Membros de projeto
+// @tag.name					boards
+// @tag.description			Boards
+// @tag.name					columns
+// @tag.description			Colunas de um board
+// @tag.name					cards
+// @tag.description			Cards (mover, concluir, labels, filtros e busca)
+// @tag.name					labels
+// @tag.description			Labels de um board
+// @tag.name					comments
+// @tag.description			Comentários de um card
+// @tag.name					attachments
+// @tag.description			Anexos de um card (arquivos e links)
+// @tag.name					health
+// @tag.description			Saúde da API
+// @securityDefinitions.apikey	BearerAuth
+// @in							header
+// @name						Authorization
+// @description				Digite "Bearer " seguido do token JWT.
 func main() {
 	healthFlag := flag.Bool("healthcheck", false, "consulta GET /health local e sai com 0 (ok) ou 1 (falha); usado pelo healthcheck do Docker")
 	flag.Parse()
