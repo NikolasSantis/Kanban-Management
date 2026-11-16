@@ -4,6 +4,7 @@ import (
 	"kanban-management/internal/events"
 	boardListeners "kanban-management/internal/listeners/boards"
 	cardListeners "kanban-management/internal/listeners/cards"
+	commentListeners "kanban-management/internal/listeners/comments"
 	labelListeners "kanban-management/internal/listeners/labels"
 	project "kanban-management/internal/listeners/project_members"
 	projectListeners "kanban-management/internal/listeners/projects"
@@ -59,6 +60,12 @@ func RegisterEvents() {
 	Dispatcher.Register(
 		"board.deleted",
 		labelListeners.HandleBoardDeleted,
+	)
+
+	// card.deleted → comentários do card (anexos entram na etapa 11).
+	Dispatcher.Register(
+		"card.deleted",
+		commentListeners.HandleCardDeleted,
 	)
 
 	// label.deleted → remove a label dos cards.
