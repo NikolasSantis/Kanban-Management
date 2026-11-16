@@ -24,6 +24,8 @@ type Config struct {
 	LogLevel            string
 	LogFormat           string
 	AttachmentMaxSizeMB int
+	StorageDriver       string
+	StorageLocalPath    string
 }
 
 var current *Config
@@ -60,6 +62,8 @@ func Load() (*Config, error) {
 		defaultLogFormat = "json"
 	}
 	cfg.LogFormat = getEnv("LOG_FORMAT", defaultLogFormat)
+	cfg.StorageDriver = getEnv("STORAGE_DRIVER", "local")
+	cfg.StorageLocalPath = getEnv("STORAGE_LOCAL_PATH", "./uploads")
 
 	var err error
 
@@ -91,6 +95,10 @@ func Load() (*Config, error) {
 
 	if !slices.Contains([]string{"debug", "info", "warn", "error"}, cfg.LogLevel) {
 		errs = append(errs, fmt.Errorf("LOG_LEVEL inválido %q (use debug, info, warn ou error)", cfg.LogLevel))
+	}
+
+	if !slices.Contains([]string{"local", "memory"}, cfg.StorageDriver) {
+		errs = append(errs, fmt.Errorf("STORAGE_DRIVER inválido %q (use local ou memory)", cfg.StorageDriver))
 	}
 
 	if !slices.Contains([]string{"text", "json"}, cfg.LogFormat) {

@@ -98,3 +98,29 @@ func TestLoadTestEnvDefaultsToErrorLogLevel(t *testing.T) {
 		t.Errorf("esperava error em APP_ENV=test, veio %q", cfg.LogLevel)
 	}
 }
+
+func TestLoadStorageDefaultsAndValidation(t *testing.T) {
+	setValidEnv(t)
+	clearOptionalEnv(t)
+	t.Setenv("STORAGE_DRIVER", "")
+	t.Setenv("STORAGE_LOCAL_PATH", "")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.StorageDriver != "local" || cfg.StorageLocalPath != "./uploads" {
+		t.Errorf("defaults de storage inesperados: %+v", cfg)
+	}
+
+	t.Setenv("STORAGE_DRIVER", "memory")
+	cfg, err = Load()
+	if err != nil || cfg.StorageDriver != "memory" {
+		t.Errorf("memory deveria ser aceito: %v %+v", err, cfg)
+	}
+
+	t.Setenv("STORAGE_DRIVER", "s3")
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "STORAGE_DRIVER") {
+		t.Errorf("driver inválido deveria falhar: %v", err)
+	}
+}

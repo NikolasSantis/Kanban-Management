@@ -27,6 +27,9 @@ go.work.sum
 # env file
 .env
 
+# anexos enviados (driver de storage local)
+uploads/
+
 # Editor/IDE
 # .idea/
 # .vscode/
