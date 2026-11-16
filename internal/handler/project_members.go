@@ -145,6 +145,12 @@ func AddMemberToProject() fiber.Handler {
 		collection := database.GetCollection("project_members")
 		ctx := context.Background()
 
+		if !services.UserExists(ctx, userIDToAdd) {
+			return http.Error(c, 404, fiber.Map{
+				"error": "User not found",
+			}, "User not found")
+		}
+
 		now := time.Now()
 
 		var existingMember models.ProjectMember

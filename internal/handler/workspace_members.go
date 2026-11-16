@@ -211,6 +211,12 @@ func AddMemberToWorkspace() fiber.Handler {
 		collection := database.GetCollection("workspaces_members")
 		ctx := context.Background()
 
+		if !services.UserExists(ctx, userIDToAdd) {
+			return http.Error(c, 404, fiber.Map{
+				"error": "User not found",
+			}, "User not found")
+		}
+
 		count, err := collection.CountDocuments(ctx, bson.M{
 			"workspace_id": workspaceID,
 			"user_id":      userIDToAdd,
