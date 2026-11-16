@@ -21,9 +21,7 @@ func respondAuthError(c *fiber.Ctx, err error) error {
 			"error": "Forbidden",
 		}, "Forbidden")
 	default:
-		return http.Error(c, 500, fiber.Map{
-			"error": "Fail to check permissions",
-		}, "Fail to check permissions")
+		return http.ServerError(c, err, "Fail to check permissions")
 	}
 }
 
@@ -35,7 +33,5 @@ func respondLastAdminError(c *fiber.Ctx, err error, message string) error {
 		}, message)
 	}
 
-	return http.Error(c, 500, fiber.Map{
-		"error": "Fail to check admins",
-	}, "Fail to check admins")
+	return http.ServerError(c, err, "Fail to check admins")
 }

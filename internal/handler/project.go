@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"kanban-management/internal/middleware"
 	"context"
 	"encoding/json"
@@ -34,9 +35,7 @@ func MyProjects() fiber.Handler {
 		})
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Error to get projects",
-			}, "Error to get projects")
+			return http.ServerError(c, err, "Error to get projects")
 		}
 
 		defer membersCursor.Close(ctx)
@@ -44,9 +43,7 @@ func MyProjects() fiber.Handler {
 		var memberships []models.ProjectMember
 
 		if err = membersCursor.All(ctx, &memberships); err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Error to verify projects",
-			}, "Error to verify projects")
+			return http.ServerError(c, err, "Error to verify projects")
 		}
 
 		projectIDs := []bson.ObjectID{}
@@ -63,9 +60,7 @@ func MyProjects() fiber.Handler {
 		})
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Error to get projects",
-			}, "Error to get projects")
+			return http.ServerError(c, err, "Error to get projects")
 		}
 
 		defer cursor.Close(ctx)
@@ -73,9 +68,7 @@ func MyProjects() fiber.Handler {
 		projects := []models.Project{}
 
 		if err = cursor.All(ctx, &projects); err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Error to verify projects",
-			}, "Error to verify projects")
+			return http.ServerError(c, err, "Error to verify projects")
 		}
 
 		return http.Success(c, 200, projects)
@@ -137,15 +130,11 @@ func CreateProject() fiber.Handler {
 		singleResult, err := collection.InsertOne(ctx, project)
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Project not created",
-			}, "Project not created")
+			return http.ServerError(c, err, "Project not created")
 		}
 
 		if !singleResult.Acknowledged {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Error to create project",
-			}, "Error to create project")
+			return http.ServerError(c, nil, "Error to create project")
 		}
 
 		err = services.Dispatcher.Dispatch(
@@ -157,10 +146,10 @@ func CreateProject() fiber.Handler {
 		)
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Fail to dispatch project created event",
-			}, "Fail to dispatch project created event")
+			return http.ServerError(c, err, "Fail to dispatch project created event")
 		}
+
+		slog.Info("project.created", "project_id", singleResult.InsertedID, "user_id", userID.Hex())
 
 		return http.Success(c, 201, project)
 	}
@@ -226,15 +215,11 @@ func PatchProject() fiber.Handler {
 		})
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Error to update",
-			}, "Error to update")
+			return http.ServerError(c, err, "Error to update")
 		}
 
 		if result.ModifiedCount == 0 {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Not data updated",
-			}, "Not data updated")
+			return http.ServerError(c, nil, "Not data updated")
 		}
 
 		return http.Success(c, 200, "Updated")
@@ -281,16 +266,14 @@ func DeleteProject() fiber.Handler {
 		})
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Error to delete project",
-			}, "Error to delete project")
+			return http.ServerError(c, err, "Error to delete project")
 		}
 
 		if deleteResult.ModifiedCount == 0 {
-			return http.Error(c, 500, fiber.Map{
-				"error": "No project modified",
-			}, "No project modified")
+			return http.ServerError(c, nil, "No project modified")
 		}
+
+		slog.Info("project.deleted", "project_id", projectID.Hex(), "user_id", userID.Hex())
 
 		return http.Success(c, 200, "deleted")
 	}

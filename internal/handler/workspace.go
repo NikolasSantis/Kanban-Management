@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"kanban-management/internal/middleware"
 	"context"
 	"encoding/json"
@@ -20,9 +21,7 @@ func GetWorkspaces() fiber.Handler {
 		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Fail to user auth",
-			}, "Fail to user auth")
+			return http.ServerError(c, err, "Fail to user auth")
 		}
 
 		collection := database.GetCollection("workspaces")
@@ -44,9 +43,7 @@ func GetWorkspaces() fiber.Handler {
 		workspaces := []models.Workspace{}
 
 		if err = cursor.All(ctx, &workspaces); err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Erro to verify workspaces",
-			}, "Error to verify workspaces")
+			return http.ServerError(c, err, "Error to verify workspaces")
 		}
 
 		return http.Success(c, 200, workspaces)
@@ -84,18 +81,16 @@ func CreateWorkspace() fiber.Handler {
 		result, err := collection.InsertOne(ctx, workspace)
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Fail to create workspace",
-			}, "Fail to create workspace")
+			return http.ServerError(c, err, "Fail to create workspace")
 		}
 
 		ownerAsMember := services.AddOwnerProjectAsOneMember(userID, result.InsertedID.(bson.ObjectID))
 
 		if !ownerAsMember {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Fail to save owner as one workspace member",
-			}, "Fail to save owner as one workspace member")
+			return http.ServerError(c, nil, "Fail to save owner as one workspace member")
 		}
+
+		slog.Info("workspace.created", "workspace_id", result.InsertedID, "user_id", userID.Hex())
 
 		return http.Success(c, 200, workspace)
 	}
@@ -162,15 +157,11 @@ func PatchWorkspace() fiber.Handler {
 		})
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Error on update register",
-			}, "Error to update register")
+			return http.ServerError(c, err, "Error to update register")
 		}
 
 		if updateResult.ModifiedCount != 1 {
-			return http.Error(c, 500, fiber.Map{
-				"error": "No modified register",
-			}, "No modified register")
+			return http.ServerError(c, nil, "No modified register")
 		}
 
 		return http.Success(c, 200, fiber.Map{"message": "Updated"})
@@ -198,9 +189,7 @@ func DeleteWorkspace() fiber.Handler {
 		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Fail to user auth",
-			}, "Fail to user auth")
+			return http.ServerError(c, err, "Fail to user auth")
 		}
 
 		ctx := context.Background()
@@ -221,9 +210,7 @@ func DeleteWorkspace() fiber.Handler {
 		})
 
 		if result.Err() != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Delete operation error",
-			}, "Delete operation error")
+			return http.ServerError(c, result.Err(), "Delete operation error")
 		}
 
 		err = services.Dispatcher.Dispatch(
@@ -234,10 +221,10 @@ func DeleteWorkspace() fiber.Handler {
 		)
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Fail to dispatch event",
-			}, "Fail to dispatch event")
+			return http.ServerError(c, err, "Fail to dispatch event")
 		}
+
+		slog.Info("workspace.deleted", "workspace_id", workspaceID.Hex(), "user_id", userID.Hex())
 
 		return http.Success(c, 200, "Workspace deleted")
 	}

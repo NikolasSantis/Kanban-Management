@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"kanban-management/internal/middleware"
 	"context"
 	"kanban-management/internal/database"
@@ -39,9 +40,7 @@ func GetMyWorkspaces() fiber.Handler {
 		})
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Fail to get user workspaces",
-			}, "Fail to get user workspaces")
+			return http.ServerError(c, err, "Fail to get user workspaces")
 		}
 
 		defer cursor.Close(ctx)
@@ -49,9 +48,7 @@ func GetMyWorkspaces() fiber.Handler {
 		var workspaceMembers []models.WorkspaceMember
 
 		if err = cursor.All(ctx, &workspaceMembers); err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Fail to get workspace members",
-			}, "Fail to get workspace members")
+			return http.ServerError(c, err, "Fail to get workspace members")
 		}
 
 		workspaceIDs := make([]bson.ObjectID, 0, len(workspaceMembers))
@@ -73,17 +70,13 @@ func GetMyWorkspaces() fiber.Handler {
 			})
 
 			if err != nil {
-				return http.Error(c, 500, fiber.Map{
-					"error": "Fail to get workspaces",
-				}, "Fail to get workspaces")
+				return http.ServerError(c, err, "Fail to get workspaces")
 			}
 
 			defer cursor.Close(ctx)
 
 			if err = cursor.All(ctx, &workspaces); err != nil {
-				return http.Error(c, 500, fiber.Map{
-					"error": "Fail to decode workspaces",
-				}, "Fail to decode workspaces")
+				return http.ServerError(c, err, "Fail to decode workspaces")
 			}
 		}
 
@@ -142,9 +135,7 @@ func GetMembersOnWorkspace() fiber.Handler {
 		defer cursor.Close(ctx)
 
 		if err = cursor.All(ctx, &workspaceMembers); err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Fail to get members",
-			}, "Fail to get members")
+			return http.ServerError(c, err, "Fail to get members")
 		}
 
 		return http.Success(c, 200, workspaceMembers)
@@ -227,9 +218,7 @@ func AddMemberToWorkspace() fiber.Handler {
 		})
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Fail to check workspace member",
-			}, "Fail to check workspace member")
+			return http.ServerError(c, err, "Fail to check workspace member")
 		}
 
 		if count > 0 {
@@ -252,14 +241,14 @@ func AddMemberToWorkspace() fiber.Handler {
 		result, err := collection.InsertOne(ctx, workspaceMember)
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Member not added",
-			}, "Member not added")
+			return http.ServerError(c, err, "Member not added")
 		}
 
 		if insertedID, ok := result.InsertedID.(bson.ObjectID); ok {
 			workspaceMember.ID = insertedID
 		}
+
+		slog.Info("workspace.member_added", "workspace_id", workspaceID.Hex(), "member_id", userIDToAdd.Hex(), "user_id", userID.Hex())
 
 		return http.Success(c, 200, workspaceMember)
 	}
@@ -286,9 +275,7 @@ func PatchWorkspaceMember() fiber.Handler {
 		userID, err := middleware.CurrentUserID(c)
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Fail to user auth",
-			}, "Fail to user auth")
+			return http.ServerError(c, err, "Fail to user auth")
 		}
 
 		userRole, err := services.AuthorizeWorkspace(context.Background(), userID, workspaceID, services.ActionWorkspaceManageMembers)
@@ -362,9 +349,7 @@ func PatchWorkspaceMember() fiber.Handler {
 		})
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Member not updated",
-			}, "Member not updated")
+			return http.ServerError(c, err, "Member not updated")
 		}
 
 		return http.Success(c, 200, fiber.Map{"message": "Member updated"})
@@ -462,10 +447,10 @@ func DeleteWorkspaceMember() fiber.Handler {
 		})
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Member not deleted",
-			}, "Member not deleted")
+			return http.ServerError(c, err, "Member not deleted")
 		}
+
+		slog.Info("workspace.member_removed", "workspace_id", workspaceID.Hex(), "member_id", subjectUserId.Hex(), "user_id", userID.Hex())
 
 		return http.Success(c, 200, fiber.Map{"message": "Member Deleted"})
 	}

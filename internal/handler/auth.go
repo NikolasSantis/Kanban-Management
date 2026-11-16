@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"kanban-management/internal/middleware"
 	"context"
 	"kanban-management/internal/auth"
@@ -63,9 +64,7 @@ func Login() fiber.Handler {
 		token, err := auth.GenerateToken(user.ID.Hex())
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Error generating token",
-			}, "Error generating token")
+			return http.ServerError(c, err, "Error generating token")
 		}
 
 		return http.Success(c, 200, fiber.Map{
@@ -88,9 +87,7 @@ func RegisterNewUser() fiber.Handler {
 		)
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Error to hash password",
-			}, "Error to hash password")
+			return http.ServerError(c, err, "Error to hash password")
 		}
 
 		user.Password = string(hashedPassword)
@@ -107,17 +104,21 @@ func RegisterNewUser() fiber.Handler {
 		matchedRows, err := collection.CountDocuments(ctx, bson.M{"email": user.Email})
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{"error": err.Error()}, "Error to check email")
+			return http.ServerError(c, err, "Error to check email")
 		}
 
 		if matchedRows != 0 {
 			return http.Error(c, 409, fiber.Map{"error": "User already exists"}, "User already exists")
 		}
 
-		_, err = collection.InsertOne(ctx, user)
+		insertResult, err := collection.InsertOne(ctx, user)
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{"error": "Error to register user"}, "Error to register user")
+			return http.ServerError(c, err, "Error to register user")
+		}
+
+		if insertedID, ok := insertResult.InsertedID.(bson.ObjectID); ok {
+			slog.Info("user.registered", "user_id", insertedID.Hex())
 		}
 
 		return http.Success(c, 200, fiber.Map{"success": true})

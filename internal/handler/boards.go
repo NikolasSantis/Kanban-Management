@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"kanban-management/internal/middleware"
 	"context"
 	"encoding/json"
@@ -80,9 +81,7 @@ func GetBoards() fiber.Handler {
 		})
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Fail to get project boards",
-			}, "Fail to get project boards")
+			return http.ServerError(c, err, "Fail to get project boards")
 		}
 
 		defer cursor.Close(ctx)
@@ -90,9 +89,7 @@ func GetBoards() fiber.Handler {
 		boards := []models.Board{}
 
 		if err := cursor.All(ctx, &boards); err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Fail to decode project boards",
-			}, "Fail to decode project boards")
+			return http.ServerError(c, err, "Fail to decode project boards")
 		}
 
 		return http.Success(c, 200, boards)
@@ -210,20 +207,18 @@ func CreateBoard() fiber.Handler {
 		result, err := collection.InsertOne(ctx, board)
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Board not created",
-			}, "Board not created")
+			return http.ServerError(c, err, "Board not created")
 		}
 
 		if !result.Acknowledged {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Error to create board",
-			}, "Error to create board")
+			return http.ServerError(c, nil, "Error to create board")
 		}
 
 		if insertedID, ok := result.InsertedID.(bson.ObjectID); ok {
 			board.ID = &insertedID
 		}
+
+		slog.Info("board.created", "board_id", board.ID, "project_id", projectID.Hex(), "user_id", userID.Hex())
 
 		return http.Success(c, 201, board)
 	}
@@ -302,15 +297,11 @@ func PatchBoard() fiber.Handler {
 		})
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Error to update",
-			}, "Error to update")
+			return http.ServerError(c, err, "Error to update")
 		}
 
 		if result.ModifiedCount == 0 {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Not data updated",
-			}, "Not data updated")
+			return http.ServerError(c, nil, "Not data updated")
 		}
 
 		return http.Success(c, 200, "Updated")
@@ -369,16 +360,14 @@ func DeleteBoard() fiber.Handler {
 		})
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Error to delete board",
-			}, "Error to delete board")
+			return http.ServerError(c, err, "Error to delete board")
 		}
 
 		if result.ModifiedCount == 0 {
-			return http.Error(c, 500, fiber.Map{
-				"error": "No board modified",
-			}, "No board modified")
+			return http.ServerError(c, nil, "No board modified")
 		}
+
+		slog.Info("board.deleted", "board_id", boardID.Hex(), "user_id", userID.Hex())
 
 		return http.Success(c, 200, "deleted")
 	}

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"kanban-management/internal/middleware"
 	"context"
 	"kanban-management/internal/database"
@@ -60,9 +61,7 @@ func GetMembersOnProject() fiber.Handler {
 		})
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Fail to get project members",
-			}, "Fail to get project members")
+			return http.ServerError(c, err, "Fail to get project members")
 		}
 
 		defer cursor.Close(ctx)
@@ -70,9 +69,7 @@ func GetMembersOnProject() fiber.Handler {
 		var members []models.ProjectMember
 
 		if err := cursor.All(ctx, &members); err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Fail to decode project members",
-			}, "Fail to decode project members")
+			return http.ServerError(c, err, "Fail to decode project members")
 		}
 
 		return http.Success(c, 200, members)
@@ -181,14 +178,14 @@ func AddMemberToProject() fiber.Handler {
 			)
 
 			if err != nil {
-				return http.Error(c, 500, fiber.Map{
-					"error": "Failed to reactivate project member",
-				}, "Failed to reactivate project member")
+				return http.ServerError(c, err, "Failed to reactivate project member")
 			}
 
 			existingMember.Role = &request.Role
 			existingMember.UpdatedAt = now
 			existingMember.DeletedAt = nil
+
+			slog.Info("project.member_added", "project_id", projectID.Hex(), "member_id", userIDToAdd.Hex(), "user_id", userID.Hex())
 
 			return http.Success(c, 200, existingMember)
 		}
@@ -204,14 +201,14 @@ func AddMemberToProject() fiber.Handler {
 		result, err := collection.InsertOne(ctx, member)
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Member not added",
-			}, "Member not added")
+			return http.ServerError(c, err, "Member not added")
 		}
 
 		if insertedID, ok := result.InsertedID.(bson.ObjectID); ok {
 			member.ID = &insertedID
 		}
+
+		slog.Info("project.member_added", "project_id", projectID.Hex(), "member_id", userIDToAdd.Hex(), "user_id", userID.Hex())
 
 		return http.Success(c, 201, member)
 	}
@@ -320,9 +317,7 @@ func PatchProjectMember() fiber.Handler {
 		)
 
 		if result.Err() != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Error to update project member",
-			}, "Error to update project member")
+			return http.ServerError(c, result.Err(), "Error to update project member")
 		}
 
 		return http.Success(c, 200, fiber.Map{
@@ -430,9 +425,7 @@ func DeleteProjectMember() fiber.Handler {
 		)
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Member not deleted",
-			}, "Member not deleted")
+			return http.ServerError(c, err, "Member not deleted")
 		}
 
 		if result.MatchedCount == 0 {
@@ -440,6 +433,8 @@ func DeleteProjectMember() fiber.Handler {
 				"error": "Project member not found",
 			}, "Project member not found")
 		}
+
+		slog.Info("project.member_removed", "project_id", projectID.Hex(), "member_id", subjectUserID.Hex(), "user_id", userID.Hex())
 
 		return http.Success(c, 200, fiber.Map{
 			"message": "Member deleted",

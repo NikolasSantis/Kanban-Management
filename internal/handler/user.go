@@ -170,9 +170,7 @@ func PatchUser() fiber.Handler {
 				}, "Email already in use")
 			}
 
-			return http.Error(c, 500, fiber.Map{
-				"error": "Update failed",
-			}, "Update Failed")
+			return http.ServerError(c, err, "Update Failed")
 		}
 
 		return http.Success(c, 200, updateResults)
@@ -233,9 +231,7 @@ func DeleteUser() fiber.Handler {
 		})
 
 		if deleteResults.Err() != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Delete operation error",
-			}, "Delete operation error")
+			return http.ServerError(c, deleteResults.Err(), "Delete operation error")
 		}
 
 		err = services.Dispatcher.Dispatch(
@@ -246,10 +242,7 @@ func DeleteUser() fiber.Handler {
 		)
 
 		if err != nil {
-			return http.Error(c, 500, fiber.Map{
-				"error": "Error to dispatch event",
-				"err":   err,
-			}, "Error to dispatch event")
+			return http.ServerError(c, err, "Error to dispatch event")
 		}
 
 		return http.Success(c, 200, fiber.Map{
