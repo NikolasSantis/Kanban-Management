@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"kanban-management/internal/filters"
 	"kanban-management/internal/pagination"
 	"log/slog"
 	"time"
@@ -46,7 +47,7 @@ func GetComments() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ctx := context.Background()
 
-		card, _, _, handled, err := loadCardForUser(c, ctx, services.ActionCardView)
+		card, userID, _, handled, err := loadCardForUser(c, ctx, services.ActionCardView)
 
 		if handled {
 			return err
@@ -58,10 +59,22 @@ func GetComments() fiber.Handler {
 			return invalidCardResponse(c, pagination.InvalidParamsMessage)
 		}
 
-		comments, total, err := pagination.Fetch[models.Comment](ctx, database.GetCollection("comments"), bson.M{
+		filter := bson.M{
 			"card_id": *card.ID,
 			"$or":     services.NotDeleted(),
-		}, bson.D{{Key: "created_at", Value: 1}, {Key: "_id", Value: 1}}, params)
+		}
+
+		authorFilter, err := filters.ParseAuthorID(c.Query("author_id"), userID)
+
+		if err != nil {
+			return respondQueryError(c, err)
+		}
+
+		if authorFilter != nil {
+			filter["author_id"] = *authorFilter
+		}
+
+		comments, total, err := pagination.Fetch[models.Comment](ctx, database.GetCollection("comments"), filter, bson.D{{Key: "created_at", Value: 1}, {Key: "_id", Value: 1}}, params)
 
 		if err != nil {
 			return http.ServerError(c, err, "Fail to get comments")

@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"kanban-management/internal/database"
+	"kanban-management/internal/filters"
 	"kanban-management/internal/http"
 	"kanban-management/internal/middleware"
 	"kanban-management/internal/models"
@@ -115,10 +116,22 @@ func GetMembersOnWorkspace() fiber.Handler {
 			return invalidCardResponse(c, pagination.InvalidParamsMessage)
 		}
 
-		members, total, err := pagination.Fetch[models.WorkspaceMember](context.Background(), database.GetCollection("workspaces_members"), bson.M{
+		filter := bson.M{
 			"workspace_id": workspaceID,
 			"$or":          services.NotDeleted(),
-		}, bson.D{{Key: "created_at", Value: 1}, {Key: "_id", Value: 1}}, params)
+		}
+
+		roles, err := filters.ParseRoles(c.Query("role"), services.UserRoles)
+
+		if err != nil {
+			return respondQueryError(c, err)
+		}
+
+		if roles != nil {
+			filter["role"] = bson.M{"$in": roles}
+		}
+
+		members, total, err := pagination.Fetch[models.WorkspaceMember](context.Background(), database.GetCollection("workspaces_members"), filter, bson.D{{Key: "created_at", Value: 1}, {Key: "_id", Value: 1}}, params)
 
 		if err != nil {
 			return http.ServerError(c, err, "Fail to get members")

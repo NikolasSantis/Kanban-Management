@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"kanban-management/internal/filters"
 	"kanban-management/internal/pagination"
 	"log/slog"
 	"mime"
@@ -44,10 +45,22 @@ func GetAttachments() fiber.Handler {
 			return invalidCardResponse(c, pagination.InvalidParamsMessage)
 		}
 
-		attachments, total, err := pagination.Fetch[models.Attachment](ctx, database.GetCollection("attachments"), bson.M{
+		filter := bson.M{
 			"card_id": *card.ID,
 			"$or":     services.NotDeleted(),
-		}, bson.D{{Key: "created_at", Value: -1}, {Key: "_id", Value: -1}}, params)
+		}
+
+		kind, err := filters.ParseKind(c.Query("kind"))
+
+		if err != nil {
+			return respondQueryError(c, err)
+		}
+
+		if kind != "" {
+			filter["kind"] = kind
+		}
+
+		attachments, total, err := pagination.Fetch[models.Attachment](ctx, database.GetCollection("attachments"), filter, bson.D{{Key: "created_at", Value: -1}, {Key: "_id", Value: -1}}, params)
 
 		if err != nil {
 			return http.ServerError(c, err, "Fail to get attachments")

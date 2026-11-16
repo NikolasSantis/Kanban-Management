@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"kanban-management/internal/database"
 	projectEvent "kanban-management/internal/events/project"
+	"kanban-management/internal/filters"
 	"kanban-management/internal/http"
 	"kanban-management/internal/middleware"
 	"kanban-management/internal/models"
@@ -82,6 +83,26 @@ func MyProjects() fiber.Handler {
 
 		if searching {
 			filter["$and"] = search.RegexFilter("search_text", terms)["$and"]
+		}
+
+		statuses, err := filters.ParseStatuses(c.Query("status"))
+
+		if err != nil {
+			return respondQueryError(c, err)
+		}
+
+		if statuses != nil {
+			filter["status"] = bson.M{"$in": statuses}
+		}
+
+		workspaceFilter, err := filters.ParseObjectID(c.Query("workspace_id"), "workspace_id")
+
+		if err != nil {
+			return respondQueryError(c, err)
+		}
+
+		if workspaceFilter != nil {
+			filter["workspace_id"] = *workspaceFilter
 		}
 
 		projects, total, err := pagination.Fetch[models.Project](ctx, collection, filter, bson.D{{Key: "created_at", Value: -1}, {Key: "_id", Value: -1}}, params)

@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"kanban-management/internal/database"
+	"kanban-management/internal/filters"
 	"kanban-management/internal/http"
 	"kanban-management/internal/middleware"
 	"kanban-management/internal/models"
@@ -59,10 +60,22 @@ func GetMembersOnProject() fiber.Handler {
 			return invalidCardResponse(c, pagination.InvalidParamsMessage)
 		}
 
-		members, total, err := pagination.Fetch[models.ProjectMember](context.Background(), database.GetCollection("project_members"), bson.M{
+		filter := bson.M{
 			"project_id": projectID,
 			"$or":        services.NotDeleted(),
-		}, bson.D{{Key: "created_at", Value: 1}, {Key: "_id", Value: 1}}, params)
+		}
+
+		roles, err := filters.ParseRoles(c.Query("role"), services.UserRoles)
+
+		if err != nil {
+			return respondQueryError(c, err)
+		}
+
+		if roles != nil {
+			filter["role"] = bson.M{"$in": roles}
+		}
+
+		members, total, err := pagination.Fetch[models.ProjectMember](context.Background(), database.GetCollection("project_members"), filter, bson.D{{Key: "created_at", Value: 1}, {Key: "_id", Value: 1}}, params)
 
 		if err != nil {
 			return http.ServerError(c, err, "Fail to get project members")
