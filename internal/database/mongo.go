@@ -38,10 +38,10 @@ func ConnectDB(cfg *config.Config) error {
 }
 
 func CreateIndexes() error {
-	collection := GetCollection("users")
+	ctx := context.Background()
 
-	_, err := collection.Indexes().CreateOne(
-		context.Background(),
+	_, err := GetCollection("users").Indexes().CreateOne(
+		ctx,
 		mongo.IndexModel{
 			Keys: bson.D{
 				{Key: "email", Value: 1},
@@ -49,6 +49,25 @@ func CreateIndexes() error {
 			Options: options.Index().SetUnique(true),
 		},
 	)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = GetCollection("cards").Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys: bson.D{
+				{Key: "board_id", Value: 1},
+				{Key: "column_id", Value: 1},
+				{Key: "position", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "project_id", Value: 1},
+			},
+		},
+	})
 
 	return err
 }

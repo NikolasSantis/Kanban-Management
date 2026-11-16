@@ -347,3 +347,38 @@ func CreateBoard(t *testing.T, app *fiber.App, token, projectID string) string {
 
 	return id
 }
+
+// CreateBoardWithColumns cria um board com colunas (id = nome) e devolve o id.
+func CreateBoardWithColumns(t *testing.T, app *fiber.App, token, projectID string, columnIDs ...string) string {
+	t.Helper()
+
+	columns := make([]map[string]any, 0, len(columnIDs))
+	for i, id := range columnIDs {
+		columns = append(columns, map[string]any{"id": id, "name": id, "position": i + 1})
+	}
+
+	status, env := Do(t, app, "POST", "/board/project/"+projectID, token, map[string]any{
+		"name": "board-" + RandomString(3), "columns": columns,
+	})
+	require.Equal(t, 201, status, "create board: %v", env.Error)
+
+	id, _ := env.Map()["id"].(string)
+	require.NotEmpty(t, id)
+
+	return id
+}
+
+// CreateCard cria um card e devolve o id (falha o teste se não for 201).
+func CreateCard(t *testing.T, app *fiber.App, token, boardID, columnID, title string) string {
+	t.Helper()
+
+	status, env := Do(t, app, "POST", "/card/board/"+boardID, token, map[string]any{
+		"title": title, "column_id": columnID,
+	})
+	require.Equal(t, 201, status, "create card: %v", env.Error)
+
+	id, _ := env.Map()["id"].(string)
+	require.NotEmpty(t, id)
+
+	return id
+}
