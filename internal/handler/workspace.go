@@ -84,13 +84,21 @@ func CreateWorkspace() fiber.Handler {
 			return http.ServerError(c, err, "Fail to create workspace")
 		}
 
-		ownerAsMember := services.AddOwnerProjectAsOneMember(userID, result.InsertedID.(bson.ObjectID))
+		insertedID, ok := result.InsertedID.(bson.ObjectID)
+
+		if !ok {
+			return http.ServerError(c, nil, "Fail to create workspace")
+		}
+
+		workspace.ID = insertedID
+
+		ownerAsMember := services.AddOwnerProjectAsOneMember(userID, insertedID)
 
 		if !ownerAsMember {
 			return http.ServerError(c, nil, "Fail to save owner as one workspace member")
 		}
 
-		slog.Info("workspace.created", "workspace_id", result.InsertedID, "user_id", userID.Hex())
+		slog.Info("workspace.created", "workspace_id", insertedID.Hex(), "user_id", userID.Hex())
 
 		return http.Success(c, 200, workspace)
 	}

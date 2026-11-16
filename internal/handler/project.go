@@ -137,9 +137,17 @@ func CreateProject() fiber.Handler {
 			return http.ServerError(c, nil, "Error to create project")
 		}
 
+		insertedID, ok := singleResult.InsertedID.(bson.ObjectID)
+
+		if !ok {
+			return http.ServerError(c, nil, "Error to create project")
+		}
+
+		project.ID = insertedID
+
 		err = services.Dispatcher.Dispatch(
 			&projectEvent.ProjectCreatedEvent{
-				ProjectID: singleResult.InsertedID.(bson.ObjectID),
+				ProjectID: insertedID,
 				UserID:    userID,
 				Ctx:       ctx,
 			},
@@ -149,7 +157,7 @@ func CreateProject() fiber.Handler {
 			return http.ServerError(c, err, "Fail to dispatch project created event")
 		}
 
-		slog.Info("project.created", "project_id", singleResult.InsertedID, "user_id", userID.Hex())
+		slog.Info("project.created", "project_id", insertedID.Hex(), "user_id", userID.Hex())
 
 		return http.Success(c, 201, project)
 	}
