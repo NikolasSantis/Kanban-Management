@@ -36,7 +36,7 @@ func (s cardScenario) cardsPath() string { return "/card/board/" + s.boardID }
 func (s cardScenario) cardOrder(t *testing.T, columnID string) []string {
 	t.Helper()
 
-	status, env := s.do(t, "GET", s.cardsPath(), s.admin.Token, nil)
+	status, env := s.do(t, "GET", s.cardsPath()+"?limit=100"+"&column_id="+columnID, s.admin.Token, nil)
 	require.Equal(t, 200, status)
 
 	var titles []string

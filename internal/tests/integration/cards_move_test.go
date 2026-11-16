@@ -147,7 +147,7 @@ func TestMoveCard_RenumbersWhenThereIsNoRoomLeft(t *testing.T) {
 	require.Equal(t, 200, status)
 	assert.Equal(t, []string{"um", "tres", "dois"}, s.cardOrder(t, "todo"), "a ordem tem que ser a pedida")
 
-	_, list := s.do(t, "GET", s.cardsPath(), s.admin.Token, nil)
+	_, list := s.do(t, "GET", s.cardsPath()+"?column_id=todo", s.admin.Token, nil)
 	positions := map[string]float64{}
 	for _, card := range list.List() {
 		positions[card["title"].(string)] = card["position"].(float64)

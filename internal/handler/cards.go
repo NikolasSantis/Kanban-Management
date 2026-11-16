@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"kanban-management/internal/pagination"
 	"log/slog"
 	"time"
 
@@ -82,25 +83,63 @@ func GetCards() fiber.Handler {
 			return respondAuthError(c, err)
 		}
 
-		cursor, err := database.GetCollection("cards").Find(ctx, bson.M{
-			"board_id": boardID,
-			"$or":      services.NotDeleted(),
-		}, options.Find().SetSort(bson.D{{Key: "column_id", Value: 1}, {Key: "position", Value: 1}}))
+		params, err := pagination.Parse(c)
 
 		if err != nil {
-			return http.ServerError(c, err, "Fail to get cards")
+			return invalidCardResponse(c, pagination.InvalidParamsMessage)
 		}
 
-		defer cursor.Close(ctx)
+		now := time.Now()
 
-		cards := []models.Card{}
+		// Com ?column_id= devolve a página dessa coluna.
+		if columnID := c.Query("column_id"); columnID != "" {
+			if !services.ColumnExists(board, columnID) {
+				return invalidCardResponse(c, "Column not found in this board")
+			}
 
-		if err := cursor.All(ctx, &cards); err != nil {
-			return http.ServerError(c, err, "Fail to decode cards")
+			page, err := cardsPage(ctx, boardID, columnID, params, now)
+
+			if err != nil {
+				return http.ServerError(c, err, "Fail to get cards")
+			}
+
+			return http.Success(c, 200, page)
 		}
 
-		return http.Success(c, 200, models.ToCardResponses(cards, time.Now()))
+		// Sem column_id: a página (a mesma page/limit) de CADA coluna ativa do board.
+		columns := map[string]pagination.Page[models.CardResponse]{}
+
+		for _, column := range board.Columns {
+			if column.ID == nil || column.DeletedAt != nil {
+				continue
+			}
+
+			page, err := cardsPage(ctx, boardID, *column.ID, params, now)
+
+			if err != nil {
+				return http.ServerError(c, err, "Fail to get cards")
+			}
+
+			columns[*column.ID] = page
+		}
+
+		return http.Success(c, 200, fiber.Map{"columns": columns})
 	}
+}
+
+// cardsPage busca a página de cards de uma coluna, ordenada por position.
+func cardsPage(ctx context.Context, boardID bson.ObjectID, columnID string, params pagination.Params, now time.Time) (pagination.Page[models.CardResponse], error) {
+	cards, total, err := pagination.Fetch[models.Card](ctx, database.GetCollection("cards"), bson.M{
+		"board_id":  boardID,
+		"column_id": columnID,
+		"$or":       services.NotDeleted(),
+	}, bson.D{{Key: "position", Value: 1}, {Key: "_id", Value: 1}}, params)
+
+	if err != nil {
+		return pagination.Page[models.CardResponse]{}, err
+	}
+
+	return pagination.NewPage(models.ToCardResponses(cards, now), params, total), nil
 }
 
 func CreateCard() fiber.Handler {

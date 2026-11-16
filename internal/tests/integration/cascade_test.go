@@ -69,7 +69,7 @@ func TestDeleteProject_DoesNotTouchOtherProjects(t *testing.T) {
 	status, _ := s.do(t, "DELETE", "/project/"+s.projectID, s.admin.Token, nil)
 	require.Equal(t, 200, status)
 
-	status, env := s.do(t, "GET", "/card/board/"+otherBoard, s.admin.Token, nil)
+	status, env := s.do(t, "GET", "/card/board/"+otherBoard+"?column_id=todo", s.admin.Token, nil)
 	require.Equal(t, 200, status, "o outro projeto continua intacto")
 	assert.Len(t, env.List(), 1)
 }

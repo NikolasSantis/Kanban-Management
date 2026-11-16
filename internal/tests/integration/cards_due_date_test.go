@@ -130,7 +130,7 @@ func TestListCards_HasIsOverdue(t *testing.T) {
 	s.createCardWithDue(t, "no-prazo", inDays(30))
 	s.createCardWithDue(t, "sem-data", nil)
 
-	status, env := s.do(t, "GET", s.cardsPath(), s.admin.Token, nil)
+	status, env := s.do(t, "GET", s.cardsPath()+"?column_id=todo", s.admin.Token, nil)
 	require.Equal(t, 200, status)
 
 	overdue := map[string]any{}
