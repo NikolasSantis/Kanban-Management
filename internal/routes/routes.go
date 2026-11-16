@@ -7,6 +7,7 @@ import (
 )
 
 func RegisterRoutes(app *fiber.App, store storage.Storage) {
+	RegisterHealthRoutes(app)
 	RegisterAuthRoutes(app)
 	RegisterUsersRoutes(app)
 	RegisterWorkspaceRoutes(app)
