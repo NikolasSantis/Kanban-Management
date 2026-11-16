@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"kanban-management/internal/pagination"
 	"log/slog"
 	"mime"
 	nethttp "net/http"
@@ -20,7 +21,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type linkRequest struct {
@@ -38,24 +38,22 @@ func GetAttachments() fiber.Handler {
 			return err
 		}
 
-		cursor, err := database.GetCollection("attachments").Find(ctx, bson.M{
+		params, err := pagination.Parse(c)
+
+		if err != nil {
+			return invalidCardResponse(c, pagination.InvalidParamsMessage)
+		}
+
+		attachments, total, err := pagination.Fetch[models.Attachment](ctx, database.GetCollection("attachments"), bson.M{
 			"card_id": *card.ID,
 			"$or":     services.NotDeleted(),
-		}, options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}))
+		}, bson.D{{Key: "created_at", Value: -1}, {Key: "_id", Value: -1}}, params)
 
 		if err != nil {
 			return http.ServerError(c, err, "Fail to get attachments")
 		}
 
-		defer cursor.Close(ctx)
-
-		attachments := []models.Attachment{}
-
-		if err := cursor.All(ctx, &attachments); err != nil {
-			return http.ServerError(c, err, "Fail to decode attachments")
-		}
-
-		return http.Success(c, 200, models.ToAttachmentResponses(attachments))
+		return http.Success(c, 200, pagination.NewPage(models.ToAttachmentResponses(attachments), params, total))
 	}
 }
 

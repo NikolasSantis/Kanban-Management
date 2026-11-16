@@ -1,15 +1,16 @@
 package handler
 
 import (
-	"log/slog"
-	"kanban-management/internal/middleware"
 	"context"
 	"encoding/json"
 	"kanban-management/internal/database"
 	projectEvent "kanban-management/internal/events/project"
 	"kanban-management/internal/http"
+	"kanban-management/internal/middleware"
 	"kanban-management/internal/models"
+	"kanban-management/internal/pagination"
 	"kanban-management/internal/services"
+	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -61,24 +62,22 @@ func MyProjects() fiber.Handler {
 			}
 		}
 
-		cursor, err := collection.Find(ctx, bson.M{
+		params, err := pagination.Parse(c)
+
+		if err != nil {
+			return invalidCardResponse(c, pagination.InvalidParamsMessage)
+		}
+
+		projects, total, err := pagination.Fetch[models.Project](ctx, collection, bson.M{
 			"_id": bson.M{"$in": projectIDs},
 			"$or": services.NotDeleted(),
-		})
+		}, bson.D{{Key: "created_at", Value: -1}, {Key: "_id", Value: -1}}, params)
 
 		if err != nil {
 			return http.ServerError(c, err, "Error to get projects")
 		}
 
-		defer cursor.Close(ctx)
-
-		projects := []models.Project{}
-
-		if err = cursor.All(ctx, &projects); err != nil {
-			return http.ServerError(c, err, "Error to verify projects")
-		}
-
-		return http.Success(c, 200, projects)
+		return http.Success(c, 200, pagination.NewPage(projects, params, total))
 	}
 }
 

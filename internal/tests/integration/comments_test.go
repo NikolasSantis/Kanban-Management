@@ -152,7 +152,7 @@ func TestGetComments(t *testing.T) {
 		status, env := s.do(t, "GET", "/comment/card/"+other, s.admin.Token, nil)
 
 		require.Equal(t, 200, status)
-		assert.JSONEq(t, "[]", string(env.Data))
+		assert.JSONEq(t, "[]", string(env.ItemsRaw()))
 	})
 }
 
@@ -175,7 +175,7 @@ func TestGetComments_RemovedAuthorStillAppears(t *testing.T) {
 	assert.Equal(t, leaver.ID, author["id"])
 }
 
-func TestGetComments_ReturnsOnlyTheLast100(t *testing.T) {
+func TestGetComments_IsPaginatedOldestFirst(t *testing.T) {
 	s := newCommentScenario(t)
 
 	cardOID, _ := bson.ObjectIDFromHex(s.cardID)
@@ -194,11 +194,20 @@ func TestGetComments_ReturnsOnlyTheLast100(t *testing.T) {
 	_, err := database.GetCollection("comments").InsertMany(context.Background(), docs)
 	require.NoError(t, err)
 
-	contents := s.contents(t, s.admin.Token)
+	status, env := s.do(t, "GET", s.commentsPath()+"?limit=100", s.admin.Token, nil)
+	require.Equal(t, 200, status)
+	require.Len(t, env.List(), 100)
+	assert.Equal(t, "c000", env.List()[0]["content"], "os mais antigos vêm primeiro")
+	assert.Equal(t, "c099", env.List()[99]["content"])
+	assert.Equal(t, float64(105), env.Pagination()["total"])
+	assert.Equal(t, true, env.Pagination()["has_next"])
 
-	require.Len(t, contents, 100)
-	assert.Equal(t, "c005", contents[0], "os 5 mais antigos ficam de fora")
-	assert.Equal(t, "c104", contents[99])
+	status, env = s.do(t, "GET", s.commentsPath()+"?limit=100&page=2", s.admin.Token, nil)
+	require.Equal(t, 200, status)
+	require.Len(t, env.List(), 5)
+	assert.Equal(t, "c100", env.List()[0]["content"])
+	assert.Equal(t, "c104", env.List()[4]["content"])
+	assert.Equal(t, false, env.Pagination()["has_next"])
 }
 
 func TestPatchComment(t *testing.T) {

@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"kanban-management/internal/pagination"
 	"log/slog"
 	"time"
 
@@ -14,11 +15,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
-
-// Até a paginação (etapa 12), a listagem devolve os últimos 100 comentários.
-const maxListedComments = 100
 
 type commentRequest struct {
 	Content *string `json:"content"`
@@ -55,26 +52,19 @@ func GetComments() fiber.Handler {
 			return err
 		}
 
-		// Os 100 mais recentes, devolvidos do mais antigo para o mais novo.
-		cursor, err := database.GetCollection("comments").Find(ctx, bson.M{
+		params, err := pagination.Parse(c)
+
+		if err != nil {
+			return invalidCardResponse(c, pagination.InvalidParamsMessage)
+		}
+
+		comments, total, err := pagination.Fetch[models.Comment](ctx, database.GetCollection("comments"), bson.M{
 			"card_id": *card.ID,
 			"$or":     services.NotDeleted(),
-		}, options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}).SetLimit(maxListedComments))
+		}, bson.D{{Key: "created_at", Value: 1}, {Key: "_id", Value: 1}}, params)
 
 		if err != nil {
 			return http.ServerError(c, err, "Fail to get comments")
-		}
-
-		defer cursor.Close(ctx)
-
-		comments := []models.Comment{}
-
-		if err := cursor.All(ctx, &comments); err != nil {
-			return http.ServerError(c, err, "Fail to decode comments")
-		}
-
-		for i, j := 0, len(comments)-1; i < j; i, j = i+1, j-1 {
-			comments[i], comments[j] = comments[j], comments[i]
 		}
 
 		// UMA query para todos os autores da página.
@@ -94,7 +84,7 @@ func GetComments() fiber.Handler {
 			return http.ServerError(c, err, "Fail to load comment authors")
 		}
 
-		return http.Success(c, 200, services.ToCommentResponses(comments, authors))
+		return http.Success(c, 200, pagination.NewPage(services.ToCommentResponses(comments, authors), params, total))
 	}
 }
 

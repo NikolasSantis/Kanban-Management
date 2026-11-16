@@ -47,11 +47,46 @@ func (e Envelope) Map() map[string]any {
 	return m
 }
 
-// List decodifica Data como array JSON de objetos.
+// List devolve os itens de uma listagem: Data pode ser um array (rotas sem
+// paginação) ou {items, pagination} (rotas paginadas).
 func (e Envelope) List() []map[string]any {
 	var l []map[string]any
-	_ = json.Unmarshal(e.Data, &l)
-	return l
+
+	if err := json.Unmarshal(e.Data, &l); err == nil {
+		return l
+	}
+
+	var page struct {
+		Items []map[string]any `json:"items"`
+	}
+
+	_ = json.Unmarshal(e.Data, &page)
+
+	return page.Items
+}
+
+// ItemsRaw devolve o JSON bruto de "items" (ou o próprio Data, se for um array).
+func (e Envelope) ItemsRaw() json.RawMessage {
+	var page struct {
+		Items json.RawMessage `json:"items"`
+	}
+
+	if err := json.Unmarshal(e.Data, &page); err == nil && page.Items != nil {
+		return page.Items
+	}
+
+	return e.Data
+}
+
+// Pagination devolve o objeto "pagination" de uma resposta paginada.
+func (e Envelope) Pagination() map[string]any {
+	var page struct {
+		Pagination map[string]any `json:"pagination"`
+	}
+
+	_ = json.Unmarshal(e.Data, &page)
+
+	return page.Pagination
 }
 
 var (

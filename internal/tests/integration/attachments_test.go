@@ -318,7 +318,7 @@ func TestGetAttachments(t *testing.T) {
 		status, env := s.do(t, "GET", "/attachment/card/"+other, s.admin.Token, nil)
 
 		require.Equal(t, 200, status)
-		assert.JSONEq(t, "[]", string(env.Data))
+		assert.JSONEq(t, "[]", string(env.ItemsRaw()))
 	})
 }
 

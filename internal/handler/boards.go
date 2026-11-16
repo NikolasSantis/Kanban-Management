@@ -1,15 +1,16 @@
 package handler
 
 import (
-	boardEvent "kanban-management/internal/events/board"
-	"log/slog"
-	"kanban-management/internal/middleware"
 	"context"
 	"encoding/json"
 	"kanban-management/internal/database"
+	boardEvent "kanban-management/internal/events/board"
 	"kanban-management/internal/http"
+	"kanban-management/internal/middleware"
 	"kanban-management/internal/models"
+	"kanban-management/internal/pagination"
 	"kanban-management/internal/services"
+	"log/slog"
 	"slices"
 	"time"
 
@@ -73,27 +74,22 @@ func GetBoards() fiber.Handler {
 			return respondAuthError(c, err)
 		}
 
-		ctx := context.Background()
-		collection := database.GetCollection("boards")
+		params, err := pagination.Parse(c)
 
-		cursor, err := collection.Find(ctx, bson.M{
+		if err != nil {
+			return invalidCardResponse(c, pagination.InvalidParamsMessage)
+		}
+
+		boards, total, err := pagination.Fetch[models.Board](context.Background(), database.GetCollection("boards"), bson.M{
 			"project_id": projectID,
 			"$or":        services.NotDeleted(),
-		})
+		}, bson.D{{Key: "created_at", Value: -1}, {Key: "_id", Value: -1}}, params)
 
 		if err != nil {
 			return http.ServerError(c, err, "Fail to get project boards")
 		}
 
-		defer cursor.Close(ctx)
-
-		boards := []models.Board{}
-
-		if err := cursor.All(ctx, &boards); err != nil {
-			return http.ServerError(c, err, "Fail to decode project boards")
-		}
-
-		return http.Success(c, 200, boards)
+		return http.Success(c, 200, pagination.NewPage(boards, params, total))
 	}
 }
 

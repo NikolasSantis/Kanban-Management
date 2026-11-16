@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"kanban-management/internal/pagination"
 	"log/slog"
 	"time"
 
@@ -16,7 +17,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type labelRequest struct {
@@ -56,24 +56,22 @@ func GetLabels() fiber.Handler {
 			return respondAuthError(c, err)
 		}
 
-		cursor, err := database.GetCollection("labels").Find(ctx, bson.M{
+		params, err := pagination.Parse(c)
+
+		if err != nil {
+			return invalidCardResponse(c, pagination.InvalidParamsMessage)
+		}
+
+		labels, total, err := pagination.Fetch[models.Label](ctx, database.GetCollection("labels"), bson.M{
 			"board_id": boardID,
 			"$or":      services.NotDeleted(),
-		}, options.Find().SetSort(bson.D{{Key: "name_normalized", Value: 1}}))
+		}, bson.D{{Key: "name_normalized", Value: 1}, {Key: "_id", Value: 1}}, params)
 
 		if err != nil {
 			return http.ServerError(c, err, "Fail to get labels")
 		}
 
-		defer cursor.Close(ctx)
-
-		labels := []models.Label{}
-
-		if err := cursor.All(ctx, &labels); err != nil {
-			return http.ServerError(c, err, "Fail to decode labels")
-		}
-
-		return http.Success(c, 200, labels)
+		return http.Success(c, 200, pagination.NewPage(labels, params, total))
 	}
 }
 

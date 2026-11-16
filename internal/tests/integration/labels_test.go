@@ -157,7 +157,7 @@ func TestGetLabels(t *testing.T) {
 
 		require.Equal(t, 200, status)
 		assert.Empty(t, env.List())
-		assert.JSONEq(t, "[]", string(env.Data))
+		assert.JSONEq(t, "[]", string(env.ItemsRaw()))
 	})
 }
 

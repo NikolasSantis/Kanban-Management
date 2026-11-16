@@ -1,15 +1,16 @@
 package handler
 
 import (
-	"log/slog"
-	"kanban-management/internal/middleware"
 	"context"
 	"encoding/json"
 	"kanban-management/internal/database"
 	"kanban-management/internal/events/workspace"
 	"kanban-management/internal/http"
+	"kanban-management/internal/middleware"
 	"kanban-management/internal/models"
+	"kanban-management/internal/pagination"
 	"kanban-management/internal/services"
+	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -33,26 +34,22 @@ func GetWorkspaces() fiber.Handler {
 		collection := database.GetCollection("workspaces")
 		ctx := context.Background()
 
-		cursor, err := collection.Find(ctx, bson.M{
-			"owner_id": userID,
-			"$or":      services.NotDeleted(),
-		})
+		params, err := pagination.Parse(c)
 
 		if err != nil {
-			return http.Error(c, 404, fiber.Map{
-				"error": "Workspaces not found",
-			}, "Workspaces not found")
+			return invalidCardResponse(c, pagination.InvalidParamsMessage)
 		}
 
-		defer cursor.Close(ctx)
+		workspaces, total, err := pagination.Fetch[models.Workspace](ctx, collection, bson.M{
+			"owner_id": userID,
+			"$or":      services.NotDeleted(),
+		}, bson.D{{Key: "created_at", Value: -1}, {Key: "_id", Value: -1}}, params)
 
-		workspaces := []models.Workspace{}
-
-		if err = cursor.All(ctx, &workspaces); err != nil {
-			return http.ServerError(c, err, "Error to verify workspaces")
+		if err != nil {
+			return http.ServerError(c, err, "Error to get workspaces")
 		}
 
-		return http.Success(c, 200, workspaces)
+		return http.Success(c, 200, pagination.NewPage(workspaces, params, total))
 	}
 }
 

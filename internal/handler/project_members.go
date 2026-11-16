@@ -1,13 +1,14 @@
 package handler
 
 import (
-	"log/slog"
-	"kanban-management/internal/middleware"
 	"context"
 	"kanban-management/internal/database"
 	"kanban-management/internal/http"
+	"kanban-management/internal/middleware"
 	"kanban-management/internal/models"
+	"kanban-management/internal/pagination"
 	"kanban-management/internal/services"
+	"log/slog"
 	"slices"
 	"time"
 
@@ -52,27 +53,22 @@ func GetMembersOnProject() fiber.Handler {
 			return respondAuthError(c, err)
 		}
 
-		collection := database.GetCollection("project_members")
-		ctx := context.Background()
+		params, err := pagination.Parse(c)
 
-		cursor, err := collection.Find(ctx, bson.M{
-			"project_id": &projectID,
+		if err != nil {
+			return invalidCardResponse(c, pagination.InvalidParamsMessage)
+		}
+
+		members, total, err := pagination.Fetch[models.ProjectMember](context.Background(), database.GetCollection("project_members"), bson.M{
+			"project_id": projectID,
 			"$or":        services.NotDeleted(),
-		})
+		}, bson.D{{Key: "created_at", Value: 1}, {Key: "_id", Value: 1}}, params)
 
 		if err != nil {
 			return http.ServerError(c, err, "Fail to get project members")
 		}
 
-		defer cursor.Close(ctx)
-
-		var members []models.ProjectMember
-
-		if err := cursor.All(ctx, &members); err != nil {
-			return http.ServerError(c, err, "Fail to decode project members")
-		}
-
-		return http.Success(c, 200, members)
+		return http.Success(c, 200, pagination.NewPage(members, params, total))
 	}
 }
 

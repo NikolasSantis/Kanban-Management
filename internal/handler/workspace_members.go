@@ -1,13 +1,14 @@
 package handler
 
 import (
-	"log/slog"
-	"kanban-management/internal/middleware"
 	"context"
 	"kanban-management/internal/database"
 	"kanban-management/internal/http"
+	"kanban-management/internal/middleware"
 	"kanban-management/internal/models"
+	"kanban-management/internal/pagination"
 	"kanban-management/internal/services"
+	"log/slog"
 	"slices"
 	"time"
 
@@ -36,7 +37,7 @@ func GetMyWorkspaces() fiber.Handler {
 
 		cursor, err := membersCollection.Find(ctx, bson.M{
 			"user_id": userID,
-			"$or": services.NotDeleted(),
+			"$or":     services.NotDeleted(),
 		})
 
 		if err != nil {
@@ -57,30 +58,22 @@ func GetMyWorkspaces() fiber.Handler {
 			workspaceIDs = append(workspaceIDs, member.WorkspaceID)
 		}
 
-		workspaces := []models.Workspace{}
+		params, err := pagination.Parse(c)
 
-		if len(workspaceIDs) > 0 {
-			workspacesCollection := database.GetCollection("workspaces")
-
-			cursor, err := workspacesCollection.Find(ctx, bson.M{
-				"_id": bson.M{
-					"$in": workspaceIDs,
-				},
-				"$or": services.NotDeleted(),
-			})
-
-			if err != nil {
-				return http.ServerError(c, err, "Fail to get workspaces")
-			}
-
-			defer cursor.Close(ctx)
-
-			if err = cursor.All(ctx, &workspaces); err != nil {
-				return http.ServerError(c, err, "Fail to decode workspaces")
-			}
+		if err != nil {
+			return invalidCardResponse(c, pagination.InvalidParamsMessage)
 		}
 
-		return http.Success(c, 200, workspaces)
+		workspaces, total, err := pagination.Fetch[models.Workspace](ctx, database.GetCollection("workspaces"), bson.M{
+			"_id": bson.M{"$in": workspaceIDs},
+			"$or": services.NotDeleted(),
+		}, bson.D{{Key: "created_at", Value: -1}, {Key: "_id", Value: -1}}, params)
+
+		if err != nil {
+			return http.ServerError(c, err, "Fail to get workspaces")
+		}
+
+		return http.Success(c, 200, pagination.NewPage(workspaces, params, total))
 	}
 }
 
@@ -116,29 +109,22 @@ func GetMembersOnWorkspace() fiber.Handler {
 			return respondAuthError(c, err)
 		}
 
-		var workspaceMembers []models.WorkspaceMember
-
-		collection := database.GetCollection("workspaces_members")
-		ctx := context.Background()
-
-		cursor, err := collection.Find(ctx, bson.M{
-			"workspace_id": workspaceID,
-			"$or": services.NotDeleted(),
-		})
+		params, err := pagination.Parse(c)
 
 		if err != nil {
-			return http.Error(c, 404, fiber.Map{
-				"error": "Workspace members not found",
-			}, "Workspace members not found")
+			return invalidCardResponse(c, pagination.InvalidParamsMessage)
 		}
 
-		defer cursor.Close(ctx)
+		members, total, err := pagination.Fetch[models.WorkspaceMember](context.Background(), database.GetCollection("workspaces_members"), bson.M{
+			"workspace_id": workspaceID,
+			"$or":          services.NotDeleted(),
+		}, bson.D{{Key: "created_at", Value: 1}, {Key: "_id", Value: 1}}, params)
 
-		if err = cursor.All(ctx, &workspaceMembers); err != nil {
+		if err != nil {
 			return http.ServerError(c, err, "Fail to get members")
 		}
 
-		return http.Success(c, 200, workspaceMembers)
+		return http.Success(c, 200, pagination.NewPage(members, params, total))
 	}
 }
 
