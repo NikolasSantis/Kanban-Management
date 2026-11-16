@@ -39,6 +39,8 @@ func main() {
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: errorHandler,
+		// O banner do Fiber não é JSON; com LOG_FORMAT=json toda linha precisa ser.
+		DisableStartupMessage: cfg.LogFormat == "json",
 	})
 
 	// Ordem: requestid → RequestLogger → recover. O recover fica depois do
