@@ -13,3 +13,14 @@ Preencha ao menos `MONGODB_URI`, `DATABASE_NAME` e `JWT_SECRET` (mínimo 32 cara
 ```bash
 go run ./cmd/api
 ```
+
+
+## Testes
+
+```bash
+go test ./...                       # unitários; a integração é pulada (SKIP) sem MONGODB_URI
+go test ./internal/tests/... -v     # integração HTTP (precisa do banco de teste)
+go test -cover ./internal/services/...
+```
+
+Os testes de integração usam o `TEST_DATABASE_NAME` do `.env` (o nome precisa terminar em `_test` e ser diferente de `DATABASE_NAME`; senão a suíte aborta). Cada pacote de teste usa o seu próprio banco, derivado desse nome (ex.: `<nome>_integration_test`), e todas as coleções são apagadas no final. O banco principal nunca é usado. Sem `MONGODB_URI`, os testes de integração aparecem como SKIP, e a cobertura de `internal/services` fica baixa porque os testes dele também dependem do banco.
