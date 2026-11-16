@@ -621,3 +621,147 @@ func DeleteCard() fiber.Handler {
 		return http.Success(c, 200, "deleted")
 	}
 }
+
+// CompleteCard marca o card como concluído (completed_at/completed_by definidos
+// pelo servidor). É idempotente: se já estiver concluído, devolve o card sem alterar.
+func CompleteCard() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		ctx := context.Background()
+
+		card, userID, _, handled, err := loadCardForUser(c, ctx, services.ActionCardUpdate)
+
+		if handled {
+			return err
+		}
+
+		if card.CompletedAt == nil {
+			now := time.Now().UTC()
+
+			_, err = database.GetCollection("cards").UpdateOne(ctx,
+				bson.M{"_id": *card.ID, "completed_at": bson.M{"$exists": false}},
+				bson.M{"$set": bson.M{"completed_at": now, "completed_by": userID, "updated_at": now}},
+			)
+
+			if err != nil {
+				return http.ServerError(c, err, "Error to complete card")
+			}
+
+			slog.Info("card.completed", "card_id", card.ID.Hex(), "user_id", userID.Hex())
+		}
+
+		updated, err := services.FindActiveCard(ctx, *card.ID)
+
+		if err != nil {
+			return http.ServerError(c, err, "Error to load card")
+		}
+
+		return http.Success(c, 200, models.ToCardResponse(*updated, time.Now()))
+	}
+}
+
+// ReopenCard remove a conclusão do card.
+func ReopenCard() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		ctx := context.Background()
+
+		card, userID, _, handled, err := loadCardForUser(c, ctx, services.ActionCardUpdate)
+
+		if handled {
+			return err
+		}
+
+		if card.CompletedAt != nil {
+			_, err = database.GetCollection("cards").UpdateByID(ctx, *card.ID, bson.M{
+				"$unset": bson.M{"completed_at": "", "completed_by": ""},
+				"$set":   bson.M{"updated_at": time.Now()},
+			})
+
+			if err != nil {
+				return http.ServerError(c, err, "Error to reopen card")
+			}
+
+			slog.Info("card.reopened", "card_id", card.ID.Hex(), "user_id", userID.Hex())
+		}
+
+		updated, err := services.FindActiveCard(ctx, *card.ID)
+
+		if err != nil {
+			return http.ServerError(c, err, "Error to load card")
+		}
+
+		return http.Success(c, 200, models.ToCardResponse(*updated, time.Now()))
+	}
+}
+
+const maxDueRangeDays = 90
+
+// GetCardsDue lista os cards do projeto com entrega no intervalo ?from=&to=
+// (padrão: próximos 7 dias; no máximo 90 dias). Visão de calendário.
+func GetCardsDue() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		projectID, err := bson.ObjectIDFromHex(c.Params("project_id"))
+
+		if err != nil {
+			return invalidCardResponse(c, "Invalid project id")
+		}
+
+		userID, err := middleware.CurrentUserID(c)
+
+		if err != nil {
+			return http.Error(c, 401, fiber.Map{
+				"error": "Fail to get user auth",
+			}, "Fail to get user auth")
+		}
+
+		ctx := context.Background()
+
+		if _, err := services.AuthorizeProject(ctx, userID, projectID, services.ActionCardView); err != nil {
+			return respondAuthError(c, err)
+		}
+
+		now := time.Now().UTC()
+		from, to := now, now.AddDate(0, 0, 7)
+
+		if raw := c.Query("from"); raw != "" {
+			if from, err = models.ParseDate(raw); err != nil {
+				return invalidCardResponse(c, "Invalid from. Use RFC 3339 or YYYY-MM-DD")
+			}
+		}
+
+		if raw := c.Query("to"); raw != "" {
+			if to, err = models.ParseDate(raw); err != nil {
+				return invalidCardResponse(c, "Invalid to. Use RFC 3339 or YYYY-MM-DD")
+			}
+		} else if c.Query("from") != "" {
+			to = from.AddDate(0, 0, 7)
+		}
+
+		if to.Before(from) {
+			return invalidCardResponse(c, "to must be after from")
+		}
+
+		if to.Sub(from) > maxDueRangeDays*24*time.Hour {
+			return invalidCardResponse(c, "The range can be at most 90 days")
+		}
+
+		cursor, err := database.GetCollection("cards").Find(ctx, bson.M{
+			"project_id": projectID,
+			"due_date":   bson.M{"$gte": from, "$lte": to},
+			"$or":        services.NotDeleted(),
+		}, options.Find().SetSort(bson.D{{Key: "due_date", Value: 1}}))
+
+		if err != nil {
+			return http.ServerError(c, err, "Fail to get cards")
+		}
+
+		defer cursor.Close(ctx)
+
+		cards := []models.Card{}
+
+		if err := cursor.All(ctx, &cards); err != nil {
+			return http.ServerError(c, err, "Fail to decode cards")
+		}
+
+		return http.Success(c, 200, models.ToCardResponses(cards, time.Now()))
+	}
+}
