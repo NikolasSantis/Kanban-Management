@@ -37,6 +37,15 @@ func ConnectDB(cfg *config.Config) error {
 	return nil
 }
 
+// Disconnect fecha a conexão com o MongoDB (usado no encerramento gracioso).
+func Disconnect(ctx context.Context) error {
+	if DB == nil {
+		return nil
+	}
+
+	return DB.Client().Disconnect(ctx)
+}
+
 func CreateIndexes() error {
 	ctx := context.Background()
 
